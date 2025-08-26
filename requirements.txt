@@ -1,0 +1,37 @@
+# Injective Python SDK - Installed from GitHub (latest version with V2 client support)
+# injective-py  # Removed - installed from GitHub for V2 client support
+
+# Web framework for API and UI
+fastapi
+uvicorn[standard]
+websockets
+
+# Async HTTP client
+httpx
+aiohttp
+
+# Data handling
+pydantic
+python-dotenv
+
+# External price feeds
+requests
+ccxt
+
+# Logging and monitoring
+structlog
+
+# Time handling
+python-dateutil
+
+# JSON handling
+orjson
+
+# Async utilities
+asyncio-mqtt
+
+# Development dependencies
+pytest
+pytest-asyncio
+black
+flake8

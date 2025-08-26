@@ -1,0 +1,87 @@
+{
+  "markets": {
+    "INJ/USDT": {
+      "market_id": "0x0611780ba69656949525013d947713300f56c37b6175e02f26bffa495c3208fe",
+      "enabled": true,
+      "type": "spot",
+      "spread_percent": 0.5,
+      "order_size": 15,
+      "min_spread": 0.1,
+      "max_spread": 2.0,
+      "max_wallets": 3,
+      "orders_per_wallet": 3,
+      "price_correction": {
+        "enabled": true,
+        "deviation_threshold": 5.0,
+        "correction_aggressiveness": 0.8,
+        "max_correction_size": 150,
+        "correction_cooldown": 300
+      }
+    },
+    "INJ/USDT-PERP": {
+      "market_id": "0x17ef48032cb24375ba7c2e39f384e56433bcab20cbee9a7357e4cba2eb00abe6",
+      "enabled": true,
+      "type": "derivative",
+      "spread_percent": 0.3,
+      "order_size": 8,
+      "min_spread": 0.05,
+      "max_spread": 1.5,
+      "max_wallets": 3,
+      "orders_per_wallet": 2,
+      "price_correction": {
+        "enabled": true,
+        "deviation_threshold": 3.0,
+        "correction_aggressiveness": 0.6,
+        "max_correction_size": 80,
+        "correction_cooldown": 180
+      }
+    },
+    "BTC/USDT-PERP": {
+      "market_id": "0x2e94326a421c3f66c15a3b663c7b1ab7fb6a5298b3a57759ecf07f0036793fc9",
+      "enabled": false,
+      "type": "derivative",
+      "spread_percent": 0.2,
+      "order_size": 0.1,
+      "min_spread": 0.05,
+      "max_spread": 1.0,
+      "max_wallets": 2,
+      "orders_per_wallet": 1,
+      "price_correction": {
+        "enabled": true,
+        "deviation_threshold": 2.0,
+        "correction_aggressiveness": 0.5,
+        "max_correction_size": 10,
+        "correction_cooldown": 120
+      }
+    },
+    "ETH/USDT-PERP": {
+      "market_id": "0x70bc8d7feab38b23d5fdfb12b9c3726e400c265edbcbf449b6c80c31d63d3a02",
+      "enabled": false,
+      "type": "derivative",
+      "spread_percent": 0.25,
+      "order_size": 1,
+      "min_spread": 0.05,
+      "max_spread": 1.2,
+      "max_wallets": 2,
+      "orders_per_wallet": 1,
+      "price_correction": {
+        "enabled": true,
+        "deviation_threshold": 2.5,
+        "correction_aggressiveness": 0.6,
+        "max_correction_size": 20,
+        "correction_cooldown": 150
+      }
+    }
+  },
+  "global": {
+    "default_spread": 0.5,
+    "default_order_size": 10,
+    "rebalance_interval": 30,
+    "price_update_interval": 10,
+    "price_monitoring_interval": 5,
+    "ui_port": 8080,
+    "api_port": 8000,
+    "default_deviation_threshold": 5.0,
+    "default_correction_aggressiveness": 0.7
+  }
+}

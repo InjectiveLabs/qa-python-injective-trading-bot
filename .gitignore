@@ -139,6 +139,50 @@ trading_data/
 backtest_results/
 screenshots/
 
+# Environment and configuration files
+.env
+.env.local
+.env.production
+.env.staging
+.env.development
+.env.test
+*.env
+.env.*
+
+# Wallet and private key files
+wallets_config.json
+legacy_wallets_config.json
+*_wallets_config.json
+private_keys.txt
+wallet_backup.json
+
+# Market data and cache files
+data/*_comparison_report.txt
+data/*_report.txt
+cache/
+*.cache
+
+# Temporary and backup files
+*.tmp
+*.temp
+*.bak
+*.backup
+*_backup.*
+*.old
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# API keys and tokens
+api_keys.json
+tokens.json
+credentials.json
+
+# Duplicate files (should be in utils/)
+secure_wallet_loader.py
+
 # IDE
 .vscode/
 .idea/

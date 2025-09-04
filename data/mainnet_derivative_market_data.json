@@ -1,0 +1,2621 @@
+{
+    "markets": [
+      {
+        "market": {
+          "ticker": "XAU/USDT PERP",
+          "oracle_base": "0x765d2ba906dbc32ca17cc11f5310a89e9ee1f6420508c63861f2f8ba4ee34bb2",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x0160a0c8ecbf5716465b9fc22bceeedf6e92dcdc688e823bbe1af3b22a84e5b5",
+          "initial_margin_ratio": "0.019231000000000000",
+          "maintenance_margin_ratio": "0.010000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.000100000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.057693000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x0160a0c8ecbf5716465b9fc22bceeedf6e92dcdc688e823bbe1af3b22a84e5b5",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "403.554059793074353209",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "3550.658907752914591957",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "LINK/USDT PERP",
+          "oracle_base": "0x8ac0c70fff57e9aefdf5edf44b51d62c2d433653cbb2cf5cc06bb115af04d221",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x03c8da1f6aaf8aca2be26b0f4d6b89d475835c7812a1dcdb19af7dec1c6b7f60",
+          "initial_margin_ratio": "0.083333000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.010000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.249999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x03c8da1f6aaf8aca2be26b0f4d6b89d475835c7812a1dcdb19af7dec1c6b7f60",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "1.894649474459805931",
+            "cumulative_price": "-0.417774056747005499",
+            "last_timestamp": "1756907335"
+          }
+        },
+        "mark_price": "23.639308296838442618",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "SOL/USDT PERP",
+          "oracle_base": "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x06c5a306492ddc2b8dc56969766959163287ed68a6b59baa2f42330dda0aebe0",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x06c5a306492ddc2b8dc56969766959163287ed68a6b59baa2f42330dda0aebe0",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "33.024032313524248189",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "212.351770752094706741",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "MSFT/USDT PERP",
+          "oracle_base": "0xd0ca23c1cc005e004ccf1db5bf76aeb6a49218f43dac3d4b275e92de12ded4d1",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x0aa743f5462513333f15ae0799ef8d9c000f3b26a75a0b6fe7cd62e3e17bcf80",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x0aa743f5462513333f15ae0799ef8d9c000f3b26a75a0b6fe7cd62e3e17bcf80",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "5.646436214462434383",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "505.129361889335493031",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "AAPL/USDT PERP",
+          "oracle_base": "0x49f6b65cb1de6b10eaf75e7c03ca029c306d0357e91b5311b175084a5ad55688",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x0db9bd22e4c6d4ef0a504f85708944056f5ecf82d753b9154c7be88b8c2ec5e9",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x0db9bd22e4c6d4ef0a504f85708944056f5ecf82d753b9154c7be88b8c2ec5e9",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "1.997415360815015155",
+            "cumulative_price": "4.186913603122527426",
+            "last_timestamp": "1756907101"
+          }
+        },
+        "mark_price": "235.067360569520267163",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "MKR/USDT PERP",
+          "oracle_base": "0x9375299e31c0deb9c6bc378e6329aab44cb48ec655552a70d4b9050346a30378",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x142d0fa4506b5f404bcfdd54567797ff6767dce07afaedc90d379665f09f0520",
+          "initial_margin_ratio": "0.083333000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.100000000000000000",
+          "min_quantity_tick_size": "0.000100000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.249999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x142d0fa4506b5f404bcfdd54567797ff6767dce07afaedc90d379665f09f0520",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "-21.028321474633035468",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "1732.005845921570980063",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "SUI/USDT PERP",
+          "oracle_base": "0x23d7315113f5b1d3ba7a83604c44b94d79f4fd69af77f804fc7f920a6dc65744",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x18b2ca44b3d20a3b87c87d3765669b09b73b5e900693896c08394c70e79ab1e7",
+          "initial_margin_ratio": "0.083333000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.249999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x18b2ca44b3d20a3b87c87d3765669b09b73b5e900693896c08394c70e79ab1e7",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.080754091855743566",
+            "cumulative_price": "-0.902587461207951283",
+            "last_timestamp": "1756907203"
+          }
+        },
+        "mark_price": "3.372687093806867039",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "WIF/USDT PERP",
+          "oracle_base": "0x4ca4beeca86f0d164160323817a4e42b10010a724c2217c6ee41b54cd4cc61fc",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x1a6d3a59f45904e0a4a2eed269fc2f552e7e407ac90aaaeb602c31b017573f88",
+          "initial_margin_ratio": "0.083333000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.000100000000000000",
+          "min_quantity_tick_size": "1.000000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.249999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x1a6d3a59f45904e0a4a2eed269fc2f552e7e407ac90aaaeb602c31b017573f88",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.291840820143404324",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "0.807752074709540664",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "SEI/USDT PERP",
+          "oracle_base": "0x53614f1cb0c031d4af66c04cb9c756234adad0e1cee85303795091499a4084eb",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x1afa358349b140e49441b6e68529578c7d2f27f06e18ef874f428457c0aaeb8b",
+          "initial_margin_ratio": "0.083333000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.000100000000000000",
+          "min_quantity_tick_size": "1.000000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.249999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x1afa358349b140e49441b6e68529578c7d2f27f06e18ef874f428457c0aaeb8b",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "2.200519832713019107",
+            "cumulative_price": "1.420767575596436285",
+            "last_timestamp": "1756905623"
+          }
+        },
+        "mark_price": "0.290380856680064791",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "BNB/USDT PERP",
+          "oracle_base": "0x2f95862b045670cd22bee3114c39763a4a08beeb663b145d283c31d7d1101c4f",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x1c79dac019f73e4060494ab1b4fcba734350656d6fc4d474f6a238c13c6f9ced",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.010000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x1c79dac019f73e4060494ab1b4fcba734350656d6fc4d474f6a238c13c6f9ced",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "21.026449032353532020",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "857.244911252424660548",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "NVDA/USDT PERP",
+          "oracle_base": "0xb1073854ed24cbc755dc527418f52b7d271f6cc967bbf8d8129112b18860a593",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x1e8369b298705c468c1a313a729bae0dbd4410587465cc69276bf8ba4e0231c1",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x1e8369b298705c468c1a313a729bae0dbd4410587465cc69276bf8ba4e0231c1",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "2.879651867871252761",
+            "cumulative_price": "3.782711970238914090",
+            "last_timestamp": "1756906598"
+          }
+        },
+        "mark_price": "170.281160637510748495",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "TRADFI/USDT PERP",
+          "oracle_base": "0x19e09bb805456ada3979a7d1cbb4b6d63babc3a0f8e8a9509f68afa5c4c11cd5",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x2236b4cd97300c79fca5c2fff4b647ab24a6d48c1554255ff8ec7cf29429ba74",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x2236b4cd97300c79fca5c2fff4b647ab24a6d48c1554255ff8ec7cf29429ba74",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "10.612715191805851296",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "642.091897134401183834",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "WLFI/USDT PERP",
+          "oracle_base": "WLFI/USDT",
+          "oracle_quote": "InjectiveLabs",
+          "oracle_type": "Provider",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x25f4199b79a3db374b93a695e48cdc0c48c7aac844fc7ed04a0166e21ac7a072",
+          "initial_margin_ratio": "0.181818000000000000",
+          "maintenance_margin_ratio": "0.100000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.000100000000000000",
+          "min_quantity_tick_size": "1.000000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.545454000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x25f4199b79a3db374b93a695e48cdc0c48c7aac844fc7ed04a0166e21ac7a072",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "-0.008323953320064807",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "0.226117000000000000",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "PUMP/USDT PERP",
+          "oracle_base": "0x7a01fca212788bba7c5bf8c9efd576a8a722f070d2c17596ff7bb609b8d5c3b9",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x2a01aab6359dd0e801716f385a74d17e0dd754c3d24238604ed7d549ddefd611",
+          "initial_margin_ratio": "0.083333000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.000001000000000000",
+          "min_quantity_tick_size": "100.000000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.249999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x2a01aab6359dd0e801716f385a74d17e0dd754c3d24238604ed7d549ddefd611",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.000027577026415742",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "0.003932779410882476",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "PEPE/USDT PERP",
+          "oracle_base": "0xd69731a2e74ac1ce884fc3890f7ee324b6deb66147055249568869ed700882e4",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x2d7092545081b81ba33bf817b302f9609254f15f4354016631aec3bb39461f99",
+          "initial_margin_ratio": "0.095000000000000000",
+          "maintenance_margin_ratio": "0.025000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.000000001000000000",
+          "min_quantity_tick_size": "100000.000000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.285000000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x2d7092545081b81ba33bf817b302f9609254f15f4354016631aec3bb39461f99",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.000000666604042826",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "0.000009825724398584",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "WTIV5/USDT-22SEP25",
+          "oracle_base": "0x1fd93efedb8b2db34465b5dbad8beca7288ad8bbcd47213ab1fdfe57ac86a240",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x2dd456da1f935f0e6ff645842f1488a739b0fb3a350f7cad623f44dcbb937f20",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": false,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.010000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.100000000000000000"
+        },
+        "futures_info": {
+          "market_id": "0x2dd456da1f935f0e6ff645842f1488a739b0fb3a350f7cad623f44dcbb937f20",
+          "expiration_timestamp": "1758565800",
+          "twap_start_timestamp": "1758564000",
+          "expiration_twap_start_price_cumulative": "0.000000000000000000",
+          "settlement_price": "0.000000000000000000"
+        },
+        "mark_price": "64.266062751214829924",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "SPX/USDT PERP",
+          "oracle_base": "0x8414cfadf82f6bed644d2e399c11df21ec0131aa574c56030b132113dbbf3a0a",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x2e41dac6f547b1a0e88160b35e7360913e0629bfce4f847477c9552aaa48bf99",
+          "initial_margin_ratio": "0.181818000000000000",
+          "maintenance_margin_ratio": "0.100000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.545454000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x2e41dac6f547b1a0e88160b35e7360913e0629bfce4f847477c9552aaa48bf99",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.022148624971852529",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "1.151396874437578739",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "AVAX/USDT PERP",
+          "oracle_base": "0x93da3352f9f1d105fdfe4971cfa80e9dd777bfc5d0f683ebb6e1294b92137bb7",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x30a1463cfb4c393c80e257ab93118cecd73c1e632dc4d2d31c12a51bc0a70bd7",
+          "initial_margin_ratio": "0.083333000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.010000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.249999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x30a1463cfb4c393c80e257ab93118cecd73c1e632dc4d2d31c12a51bc0a70bd7",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "6.515529199734670265",
+            "cumulative_price": "-1.027324367651681851",
+            "last_timestamp": "1756906955"
+          }
+        },
+        "mark_price": "25.189703401523786670",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "COIN/USDT PERP",
+          "oracle_base": "0xfee33f2a978bf32dd6b662b65ba8083c6773b494f8401194ec1870c640860245",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x329e14c73ef0712dd1359d56476f3dd9c1c032f9c755556e5bd0cb536fb479d3",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x329e14c73ef0712dd1359d56476f3dd9c1c032f9c755556e5bd0cb536fb479d3",
+            "hourly_funding_rate_cap": "0.000055000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "4.261516908502305724",
+            "cumulative_price": "4.110650400464874546",
+            "last_timestamp": "1756906604"
+          }
+        },
+        "mark_price": "305.316665666806647069",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "TSLA/USDT PERP",
+          "oracle_base": "0x16dad506d7db8da01c87581c87ca897a012a153557d4d578c3b9c9e1bc0632f1",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x36374ac84498d300f99010e2ea693bea12479be910570fc49e986c5f899dccf6",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x36374ac84498d300f99010e2ea693bea12479be910570fc49e986c5f899dccf6",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "4.310502527071154249",
+            "cumulative_price": "35.919216620353906066",
+            "last_timestamp": "1756906792"
+          }
+        },
+        "mark_price": "329.830153778471014058",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "XION/USDT PERP",
+          "oracle_base": "0x436ccb0d465f3cb48554bcc8def65ff695341b3ebe0897563d118b9291178d0f",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x372b5c987fe8f7f84ced0d019e7ee24353877ad8cf93235ba98c970de001b3fd",
+          "initial_margin_ratio": "0.195000000000000000",
+          "maintenance_margin_ratio": "0.095000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.585000000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x372b5c987fe8f7f84ced0d019e7ee24353877ad8cf93235ba98c970de001b3fd",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "-0.419063042984115353",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "0.931523676685264063",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "TTI/USDT PERP",
+          "oracle_base": "0x9695e2b96ea7b3859da9ed25b7a46a920a776e2fdae19a7bcfdf2b219230452d",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x37d4e69a77cdca055615d55c088d5bdf1bc75801e2c00a925e0b2dae62b5d660",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x37d4e69a77cdca055615d55c088d5bdf1bc75801e2c00a925e0b2dae62b5d660",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "10.238283351734279522",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "568.000479932809406683",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "EUR/USDT PERP",
+          "oracle_base": "0xa995d00bb36a63cef7fd2c287dc105fc8f3d93779f062f09551b0af3e81ec30b",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x3c5bba656074e6e84965dc7d99a218f6f514066e6ddc5046acaff59105bb6bf5",
+          "initial_margin_ratio": "0.009901000000000000",
+          "maintenance_margin_ratio": "0.005000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.000010000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.029703000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x3c5bba656074e6e84965dc7d99a218f6f514066e6ddc5046acaff59105bb6bf5",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.053940859969479084",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "1.163887055812186294",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "OP/USDT PERP",
+          "oracle_base": "0x385f64d993f7b77d8182ed5003d97c60aa3361f3cecfe711544d2d59165e9bdf",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x48fcecd66ebabbf5a331178ec693b261dfae66ddfe6f552d7446744c6e78046c",
+          "initial_margin_ratio": "0.083333000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.249999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x48fcecd66ebabbf5a331178ec693b261dfae66ddfe6f552d7446744c6e78046c",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.264796795142890755",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "0.723005809186713860",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "BTC/USDT PERP",
+          "oracle_base": "0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x4ca0f92fc28be0c9761326016b5a1a2177dd6375558365116b5bdda9abc229ce",
+          "initial_margin_ratio": "0.019231000000000000",
+          "maintenance_margin_ratio": "0.010000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "1.000000000000000000",
+          "min_quantity_tick_size": "0.000100000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.057693000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x4ca0f92fc28be0c9761326016b5a1a2177dd6375558365116b5bdda9abc229ce",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "29388.901759203185926619",
+            "cumulative_price": "0.090020801329728164",
+            "last_timestamp": "1756907231"
+          }
+        },
+        "mark_price": "111673.038904463375127482",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "MOVE/USDT PERP",
+          "oracle_base": "0x6bf748c908767baa762a1563d454ebec2d5108f8ee36d806aadacc8f0a075b6d",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x4d814635dc4776cc26853d3116e7e782b4cfe1c77c31c8aedad384435db08dfa",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.000100000000000000",
+          "min_quantity_tick_size": "1.000000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x4d814635dc4776cc26853d3116e7e782b4cfe1c77c31c8aedad384435db08dfa",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "-0.034912713600416096",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "0.119722858799768032",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "ETH/USDT PERP",
+          "oracle_base": "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x54d4505adef6a5cef26bc403a33d595620ded4e15b9e2bc3dd489b714813366a",
+          "initial_margin_ratio": "0.019231000000000000",
+          "maintenance_margin_ratio": "0.010000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.100000000000000000",
+          "min_quantity_tick_size": "0.010000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.057693000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x54d4505adef6a5cef26bc403a33d595620ded4e15b9e2bc3dd489b714813366a",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "1381.699824456245729914",
+            "cumulative_price": "0.887115797700621205",
+            "last_timestamp": "1756907326"
+          }
+        },
+        "mark_price": "4426.749147579338892555",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "H100/USDT PERP",
+          "oracle_base": "H100/USDT",
+          "oracle_quote": "InjectiveLabs",
+          "oracle_type": "Provider",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x56cb0ef0b9d59125373112523b0adfc446dff989268547fa1a3379a6f98f5efd",
+          "initial_margin_ratio": "0.181818000000000000",
+          "maintenance_margin_ratio": "0.100000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "inj1lvlyw7p9mwlszqh90k9qhr46kya2c7e89nq7r6",
+          "admin_permissions": 127,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.545454000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x56cb0ef0b9d59125373112523b0adfc446dff989268547fa1a3379a6f98f5efd",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.008797940422240654",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "2.563333000000000000",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "APT/USDT PERP",
+          "oracle_base": "0x03ae4db29ed4ae33d323568895aa00337e658e348b37509f5372ae51f0af00d5",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x5aeb66848398815d1c8485135dc539355028fb3c32d662af9eeecfd47050a1a6",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x5aeb66848398815d1c8485135dc539355028fb3c32d662af9eeecfd47050a1a6",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.057269678179943687",
+            "cumulative_price": "-1.866497087303950179",
+            "last_timestamp": "1756906961"
+          }
+        },
+        "mark_price": "4.349891015257863899",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "GBP/USDT PERP",
+          "oracle_base": "0x84c2dde9633d93d1bcad84e7dc41c9d56578b7ec52fabedc1f335d673df0a7c1",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x5c0de20c02afe5dcc1c3c841e33bfbaa1144d8900611066141ad584eeaefbd2f",
+          "initial_margin_ratio": "0.009901000000000000",
+          "maintenance_margin_ratio": "0.005000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.000010000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.029703000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x5c0de20c02afe5dcc1c3c841e33bfbaa1144d8900611066141ad584eeaefbd2f",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.072236917690272982",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "1.341132241486191933",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "BUIDL/USDT PERP",
+          "oracle_base": "BUIDL/USDT",
+          "oracle_quote": "InjectiveLabs",
+          "oracle_type": "Provider",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x639fb43887ededd06e28f3c0d0dec62caca5c4e1cac31765f19af07c4ad999c2",
+          "initial_margin_ratio": "0.195000000000000000",
+          "maintenance_margin_ratio": "0.095000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.100000000000000000",
+          "min_quantity_tick_size": "0.000100000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.585000000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x639fb43887ededd06e28f3c0d0dec62caca5c4e1cac31765f19af07c4ad999c2",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "207.337915805926198688",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "4061.924704000000000000",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "XRP/USDT PERP",
+          "oracle_base": "0xec5d399846a9209f3fe5881d70aae9268c94339ff9817e8d18ff19fa05eea1c8",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x63bafbeee644b6606afb8476dd378fba35d516c7081d6045145790af963545aa",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.000100000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x63bafbeee644b6606afb8476dd378fba35d516c7081d6045145790af963545aa",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.699561809573515270",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "2.870237306777051213",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "ARB/USDT PERP",
+          "oracle_base": "0x3fa4252848f9f0a1480be62745a4629d9eb1322aebab8a791e344b3b9c1adcf5",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x6ddf0b8fbbd888981aafdae9fc967a12c6777aac4dd100a8257b8755c0c4b7d5",
+          "initial_margin_ratio": "0.083333000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.249999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x6ddf0b8fbbd888981aafdae9fc967a12c6777aac4dd100a8257b8755c0c4b7d5",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.109759931128390968",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "0.508301447797308377",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "HYPE/USDT PERP",
+          "oracle_base": "0x4279e31cc369bbcc2faf022b382b080e32a8e689ff20fbc530d2a603eb6cd98b",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x785afdbdc3aec238172294613c77fc129ebff1b2a0489375c30e69e6d3ac5325",
+          "initial_margin_ratio": "0.095000000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.285000000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x785afdbdc3aec238172294613c77fc129ebff1b2a0489375c30e69e6d3ac5325",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "6.669066152569266526",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "45.997128512008318835",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "DOGE/USDT PERP",
+          "oracle_base": "0xdcef50dd0a4cd2dcc17e45df1676dcb336a11a61c69df7a0299b0150c672d25c",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x7980993e508e0efc1c2634c153a1ef90f517b74351d6406221c77c04ec4799fe",
+          "initial_margin_ratio": "0.083333000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.000010000000000000",
+          "min_quantity_tick_size": "10.000000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.249999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x7980993e508e0efc1c2634c153a1ef90f517b74351d6406221c77c04ec4799fe",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.018644665376470620",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "0.218296358509808627",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "ZRO/USDT PERP",
+          "oracle_base": "0x3bd860bea28bf982fa06bcf358118064bb114086cc03993bd76197eaab0b8018",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x7a70d95e24ba42b99a30121e6a4ff0d6161847d5b86cbfc3d4b3a81d8e190a70",
+          "initial_margin_ratio": "0.181818000000000000",
+          "maintenance_margin_ratio": "0.100000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.545454000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x7a70d95e24ba42b99a30121e6a4ff0d6161847d5b86cbfc3d4b3a81d8e190a70",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.832233387814955740",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "1.890061981322614834",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "AAVE/USDT PERP",
+          "oracle_base": "0x2b9ab1e972a281585084148ba1389800799bd4be63b957507db1349314e47445",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x84d6fad5c0450811f8c163560e90ba7f621506371ec17fb07885dda2a6f435ed",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x84d6fad5c0450811f8c163560e90ba7f621506371ec17fb07885dda2a6f435ed",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "-1.113811374617701681",
+            "cumulative_price": "0.219788004980230400",
+            "last_timestamp": "1756905296"
+          }
+        },
+        "mark_price": "326.746222238886555882",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "PYTH/USDT PERP",
+          "oracle_base": "0x0bbf28e9a841a1cc788f6a361b17ca072d0ea3098a1e5df1c3922d06719579ff",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x887beca72224f88fb678a13a1ae91d39c53a05459fd37ef55005eb68f745d46d",
+          "initial_margin_ratio": "0.181818000000000000",
+          "maintenance_margin_ratio": "0.100000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.000100000000000000",
+          "min_quantity_tick_size": "1.000000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.545454000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x887beca72224f88fb678a13a1ae91d39c53a05459fd37ef55005eb68f745d46d",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.031471167385254178",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "0.161494050832883396",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "BERA/USDT PERP",
+          "oracle_base": "0x962088abcfdbdb6e30db2e340c8cf887d9efb311b1f2f17b155a63dbb6d40265",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x894b2bcd69a8a70950a1b996a252dd3a1b0fb64598e3a23dc38e45e1b60f5e1a",
+          "initial_margin_ratio": "0.083330000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.249990000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x894b2bcd69a8a70950a1b996a252dd3a1b0fb64598e3a23dc38e45e1b60f5e1a",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "-0.224583487740174280",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "2.338672585837982682",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "AMZN/USDT PERP",
+          "oracle_base": "0xb5d0e0fa58a1f8b81498ae670ce93c872d14434b72c364885d4fa1b257cbb07a",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x8a2b6067a2eb2712222e42a52e75f85b5c8d67f66d45c76a700f763c723f4caf",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x8a2b6067a2eb2712222e42a52e75f85b5c8d67f66d45c76a700f763c723f4caf",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "1.862016063101834288",
+            "cumulative_price": "-0.630095504703718116",
+            "last_timestamp": "1756906647"
+          }
+        },
+        "mark_price": "225.740836282920391145",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "CRCL/USDT PERP",
+          "oracle_base": "0x92b8527aabe59ea2b12230f7b532769b133ffb118dfbd48ff676f14b273f1365",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x8a325bd4bd29e20eb182fbc6acca2224f5f4067a29e9feb44f60b01f8e5dd0f3",
+          "initial_margin_ratio": "0.033333330000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.010000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999990000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x8a325bd4bd29e20eb182fbc6acca2224f5f4067a29e9feb44f60b01f8e5dd0f3",
+            "hourly_funding_rate_cap": "0.000055000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "4.125520886956654533",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "119.352910592517047613",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "TIA/USDT PERP",
+          "oracle_base": "0x09f7c1d7dfbb7df2b8fe3d3d87ee94a2259d212da4f30c1f0540d066dfa44723",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x9066bfa1bd97685e0df4e22a104f510fb867fde7f74a52f3341c7f5f56eb889c",
+          "initial_margin_ratio": "0.181818000000000000",
+          "maintenance_margin_ratio": "0.100000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.545454000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x9066bfa1bd97685e0df4e22a104f510fb867fde7f74a52f3341c7f5f56eb889c",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.122938154942524460",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "1.628518057471953926",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "ATH/USDT PERP",
+          "oracle_base": "0xf6b551a947e7990089e2d5149b1e44b369fcc6ad3627cb822362a2b19d24ad4a",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x9540412c2611e77ea2e4c9216c9acd1f8a333492b01b3b8306ed274edeb55296",
+          "initial_margin_ratio": "0.181818000000000000",
+          "maintenance_margin_ratio": "0.100000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.000010000000000000",
+          "min_quantity_tick_size": "10.000000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.545454000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x9540412c2611e77ea2e4c9216c9acd1f8a333492b01b3b8306ed274edeb55296",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "-0.001664905652768253",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "0.031239716439698442",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "GOOGL/USDT PERP",
+          "oracle_base": "0x5a48c03e9b9cb337801073ed9d166817473697efff0d138874e0f6a33d6d5aa6",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x96408895e808e45d95de88784092683963f415985823b8336605e6fc6de97668",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x96408895e808e45d95de88784092683963f415985823b8336605e6fc6de97668",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "2.144282013156243357",
+            "cumulative_price": "-8.705872657864677648",
+            "last_timestamp": "1756907302"
+          }
+        },
+        "mark_price": "227.995560621512988182",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "INJ/USDT PERP",
+          "oracle_base": "0x7a5bc1d2b56ad029048cd63964b3ad2776eadf812edc1a43a31406cb54bff592",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x9b9980167ecc3645ff1a5517886652d94a0825e54a77d2057cbbe3ebee015963",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x9b9980167ecc3645ff1a5517886652d94a0825e54a77d2057cbbe3ebee015963",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "20.592486865328970299",
+            "cumulative_price": "2.272922057953708614",
+            "last_timestamp": "1756907223"
+          }
+        },
+        "mark_price": "13.342791209230707701",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "STX/USDT PERP",
+          "oracle_base": "0xec7a775f46379b5e943c3526b1c8d54cd49749176b0b98e02dde68d1bd335c17",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x9bb2341e12d7357cd6865b69e491bab5ac8b087df50906a53ffa8fc3ede59f5f",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x9bb2341e12d7357cd6865b69e491bab5ac8b087df50906a53ffa8fc3ede59f5f",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.015385928999473837",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "0.638715959765632811",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "MSTR/USDT PERP",
+          "oracle_base": "0xe1e80251e5f5184f2195008382538e847fafc36f751896889dd3d1b1f6111f09",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0x9f70beeed6a8ea48b1eab7a608a2af600d432ee6eda7fba2965875a8e9702b77",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0x9f70beeed6a8ea48b1eab7a608a2af600d432ee6eda7fba2965875a8e9702b77",
+            "hourly_funding_rate_cap": "0.000055000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "5.606876679343266932",
+            "cumulative_price": "2.644059434418270683",
+            "last_timestamp": "1756906297"
+          }
+        },
+        "mark_price": "343.069690243365928770",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "TAO/USDT PERP",
+          "oracle_base": "0x410f41de235f2db824e562ea7ab2d3d3d4ff048316c61d629c0b93f58584e1af",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xa51b0df7a1ac2bea408fdc4f84f3d7060b62f976ab659b329b00065e5c8f2c37",
+          "initial_margin_ratio": "0.049500000000000000",
+          "maintenance_margin_ratio": "0.012500000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.148500000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xa51b0df7a1ac2bea408fdc4f84f3d7060b62f976ab659b329b00065e5c8f2c37",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "27.445584110080346311",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "324.325283410322554842",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "LTC/USDT PERP",
+          "oracle_base": "0x6e3f3fa8253588df9326580180233eb791e03b443a3ba7a1d892e73874e19a54",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xa5441579ece3740fd57161beb07bbe6753559173797470642bae329f60ac0b7d",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.010000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xa5441579ece3740fd57161beb07bbe6753559173797470642bae329f60ac0b7d",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "1.575976389425856733",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "112.740216369708240846",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "SBET/USDT PERP",
+          "oracle_base": "0x6b5bedda9e9d6354c5b93659cba6747d21b527437022da6e5f32e3b53e485a04",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xa64335c69ee025897d00880752971320c8bf35fa7346c58cd208bb8e996e95e3",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.010000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xa64335c69ee025897d00880752971320c8bf35fa7346c58cd208bb8e996e95e3",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "-1.795899291748713924",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "17.279250904873317736",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "XMR/USDT PERP",
+          "oracle_base": "0x46b8cc9347f04391764a0361e0b17c3ba394b001e7c304f7650f6376e37c321d",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xc0aafdb2b9e9ff378b0a8d0057a5b739083ead85aec7fa5a6db241f013f1471d",
+          "initial_margin_ratio": "0.095000000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.010000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.285000000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xc0aafdb2b9e9ff378b0a8d0057a5b739083ead85aec7fa5a6db241f013f1471d",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "9.314657406715099651",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "269.840487351770752095",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "TON/USDT PERP",
+          "oracle_base": "0x8963217838ab4cf5cadc172203c1f0b763fbaa45f346d8ee50ba994bbcac3026",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xc4068b76801bf8988b5372c64d611ce2a477f85512e5ec55270c426176bc73e2",
+          "initial_margin_ratio": "0.095000000000000000",
+          "maintenance_margin_ratio": "0.025000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.285000000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xc4068b76801bf8988b5372c64d611ce2a477f85512e5ec55270c426176bc73e2",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "-0.084828217382436383",
+            "cumulative_price": "1.898828919982603101",
+            "last_timestamp": "1756905105"
+          }
+        },
+        "mark_price": "3.182418441418201452",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "ATOM/USDT PERP",
+          "oracle_base": "0xb00b60f88b03a6a625a8d1c048c3f66653edf217439983d037e7222c4e612819",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xc559df216747fc11540e638646c384ad977617d6d8f0ea5ffdfc18d52e58ab01",
+          "initial_margin_ratio": "0.095000000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.010000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.285000000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xc559df216747fc11540e638646c384ad977617d6d8f0ea5ffdfc18d52e58ab01",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "5.859008512513526749",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "4.480929829823824665",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "HOOD/USDT PERP",
+          "oracle_base": "0x306736a4035846ba15a3496eed57225b64cc19230a50d14f3ed20fd7219b7849",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xc785a40ccb958e8df31ab18c0788f8443cefc5cbf6aca989ca721214b31fd76e",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.010000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xc785a40ccb958e8df31ab18c0788f8443cefc5cbf6aca989ca721214b31fd76e",
+            "hourly_funding_rate_cap": "0.000055000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "0.246676835222863186",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "100.387075809386685864",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "OSMO/USDT PERP",
+          "oracle_base": "0x5867f5683c757393a0670ef0f701490950fe93fdb006d181c8265a831ac0c5c6",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xcf18525b53e54ad7d27477426ade06d69d8d56d2f3bf35fe5ce2ad9eb97c2fbc",
+          "initial_margin_ratio": "0.195000000000000000",
+          "maintenance_margin_ratio": "0.095000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.585000000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xcf18525b53e54ad7d27477426ade06d69d8d56d2f3bf35fe5ce2ad9eb97c2fbc",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "-0.062509354981536947",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "0.165663637090807287",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "TRUMP/USDT PERP",
+          "oracle_base": "0x879551021853eec7a7dc827578e8e69da7e4fa8148339aa0d3d5296405be4b1a",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xdbf50a4030bce954dc0fcd8bb4f57d122a4145ae22ba22702241b59a2604c7ad",
+          "initial_margin_ratio": "0.181818000000000000",
+          "maintenance_margin_ratio": "0.100000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.010000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.545454000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xdbf50a4030bce954dc0fcd8bb4f57d122a4145ae22ba22702241b59a2604c7ad",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "-0.107742558973861869",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "8.424889605455236267",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "BTC/AUSD PERP",
+          "oracle_base": "0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43",
+          "oracle_quote": "0xd9912df360b5b7f21a122f15bdd5e27f62ce5e72bd316c291f7c86620e07fb2a",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "factory/inj1n636d9gzrqggdk66n2f97th0x8yuhfrtx520e7/ausd",
+          "market_id": "0xde9b78988c8c8e254b9dcba60d71851b3676ecfff5a736ba8f8cb10cdee04fcd",
+          "initial_margin_ratio": "0.181818000000000000",
+          "maintenance_margin_ratio": "0.100000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "1.000000000000000000",
+          "min_quantity_tick_size": "0.000100000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.545454000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xde9b78988c8c8e254b9dcba60d71851b3676ecfff5a736ba8f8cb10cdee04fcd",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "-5.652579983946575258",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "111683.435176800208070242",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "META/USDT PERP",
+          "oracle_base": "0x78a3e3b8e676a8f73c439f5d749737034b139bbbe899ba5775216fba596607fe",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xe12d934dfcd58f5f633b6cb6eb4cce91e950124469bb3996282e9d9d0cb96e36",
+          "initial_margin_ratio": "0.083333000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xe12d934dfcd58f5f633b6cb6eb4cce91e950124469bb3996282e9d9d0cb96e36",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "8.535268385583900465",
+            "cumulative_price": "0.064564473226954528",
+            "last_timestamp": "1756906228"
+          }
+        },
+        "mark_price": "737.250704901313816066",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "NFLX/USDT PERP",
+          "oracle_base": "0x8376cfd7ca8bcdf372ced05307b24dced1f15b1afafdeff715664598f15a3dd2",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xe4fd69fb47edd3a7ca1436fae764055001139659d3e0df1eb7237f031737afde",
+          "initial_margin_ratio": "0.033333000000000000",
+          "maintenance_margin_ratio": "0.020000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.100000000000000000",
+          "min_quantity_tick_size": "0.000100000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.099999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xe4fd69fb47edd3a7ca1436fae764055001139659d3e0df1eb7237f031737afde",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "8.885316374303094438",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "1211.281820545123682684",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "AIX/USDT PERP",
+          "oracle_base": "HELIX_AI_INDEX/USDT",
+          "oracle_quote": "InjectiveLabs",
+          "oracle_type": "Provider",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xe5bfc48fc29146d756c9dac69f096d56cc4fc5ae75c98c1ad045c3356d14eb82",
+          "initial_margin_ratio": "0.181818000000000000",
+          "maintenance_margin_ratio": "0.100000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.100000000000000000",
+          "min_quantity_tick_size": "0.000100000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.545454000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xe5bfc48fc29146d756c9dac69f096d56cc4fc5ae75c98c1ad045c3356d14eb82",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "113.991052433306790358",
+            "cumulative_price": "-0.112487066192705311",
+            "last_timestamp": "1756906032"
+          }
+        },
+        "mark_price": "1639.260484000000000000",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "XAG/USDT PERP",
+          "oracle_base": "0xf2fb02c32b055c805e7238d628e5e9dadef274376114eb1f012337cabe93871e",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xedc48ec071136eeb858b11ba50ba87c96e113400e29670fecc0a18d588238052",
+          "initial_margin_ratio": "0.019231000000000000",
+          "maintenance_margin_ratio": "0.010000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.010000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.057693000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xedc48ec071136eeb858b11ba50ba87c96e113400e29670fecc0a18d588238052",
+            "hourly_funding_rate_cap": "0.000027500000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "1.773798565737670010",
+            "cumulative_price": "-0.047184317712884650",
+            "last_timestamp": "1756906603"
+          }
+        },
+        "mark_price": "41.035345051692763013",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "L1X/USDT PERP",
+          "oracle_base": "HELIX_EMERGING_L1_INDEX",
+          "oracle_quote": "USDTUSD",
+          "oracle_type": "Stork",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xf12a831d2901a1c1130fb81c88c3b443c62be3cd14547625f2db8a5f2b187d2c",
+          "initial_margin_ratio": "0.083330000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.010000000000000000",
+          "min_quantity_tick_size": "0.001000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.249990000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xf12a831d2901a1c1130fb81c88c3b443c62be3cd14547625f2db8a5f2b187d2c",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "5.338338318601178692",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "662.462095001441834189",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "W/USDT PERP",
+          "oracle_base": "0xeff7446475e218517566ea99e72a4abec2e1bd8498b43b7d8331e29dcb059389",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xf1bc70398e9b469db459f3153433c6bd1253bd02377248ee29bd346a218e6243",
+          "initial_margin_ratio": "0.083333000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.000100000000000000",
+          "min_quantity_tick_size": "1.000000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.249999000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xf1bc70398e9b469db459f3153433c6bd1253bd02377248ee29bd346a218e6243",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "-0.088465095744979519",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "0.080647989281500590",
+        "mid_price_and_tob": null
+      },
+      {
+        "market": {
+          "ticker": "KAITO/USDT PERP",
+          "oracle_base": "0x7302dee641a08507c297a7b0c8b3efa74a48a3baa6c040acab1e5209692b7e59",
+          "oracle_quote": "0x2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b",
+          "oracle_type": "Pyth",
+          "oracle_scale_factor": 0,
+          "quote_denom": "peggy0xdAC17F958D2ee523a2206206994597C13D831ec7",
+          "market_id": "0xf4c788c83bd57e4dd4ff092b8d6e6a9f55b5b7584090043e18d5b02c70fbd5f6",
+          "initial_margin_ratio": "0.083330000000000000",
+          "maintenance_margin_ratio": "0.050000000000000000",
+          "maker_fee_rate": "-0.000050000000000000",
+          "taker_fee_rate": "0.000500000000000000",
+          "relayer_fee_share_rate": "0.400000000000000000",
+          "isPerpetual": true,
+          "status": "Active",
+          "min_price_tick_size": "0.001000000000000000",
+          "min_quantity_tick_size": "0.100000000000000000",
+          "min_notional": "1.000000000000000000",
+          "admin": "",
+          "admin_permissions": 0,
+          "quote_decimals": 6,
+          "reduce_margin_ratio": "0.249990000000000000"
+        },
+        "perpetual_info": {
+          "market_info": {
+            "market_id": "0xf4c788c83bd57e4dd4ff092b8d6e6a9f55b5b7584090043e18d5b02c70fbd5f6",
+            "hourly_funding_rate_cap": "0.000625000000000000",
+            "hourly_interest_rate": "0.000004166660000000",
+            "next_funding_timestamp": "1756908000",
+            "funding_interval": "3600"
+          },
+          "funding_info": {
+            "cumulative_funding": "-0.073823971899165202",
+            "cumulative_price": "0.000000000000000000",
+            "last_timestamp": "1756904400"
+          }
+        },
+        "mark_price": "1.048743835862979183",
+        "mid_price_and_tob": null
+      }
+    ]
+  }

@@ -5,23 +5,32 @@ Batch cancel all orders using Injective's batch cancel functionality.
 
 import asyncio
 import json
+import os
+import sys
 from pyinjective.async_client_v2 import AsyncClient
 from pyinjective.indexer_client import IndexerClient
 from pyinjective.core.network import Network
 from pyinjective.core.broadcaster import MsgBroadcasterWithPk
 from pyinjective import PrivateKey
 
+# Add parent directory to path to import from utils
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+# Import the secure wallet loader
+from utils.secure_wallet_loader import load_wallets_from_env
+
 async def batch_cancel_all_orders():
     print("🚨 Batch Cancel All Orders")
     print("=" * 40)
     
     try:
-        # Load wallet configs
-        with open('wallets_config.json', 'r') as f:
-            wallets_config = json.load(f)
+        # Load wallet configs securely from environment variables
+        print("🔒 Loading wallet configuration from environment variables...")
+        wallets_config = load_wallets_from_env()
         
         # Load market configs
-        with open('markets_config.json', 'r') as f:
+        print("📁 Loading market configuration...")
+        with open('config/markets_config.json', 'r') as f:
             markets_config = json.load(f)
         
         # Initialize network
@@ -31,6 +40,12 @@ async def batch_cancel_all_orders():
         indexer_client = IndexerClient(network)
         
         total_cancelled = 0
+        
+        print(f"📋 Found {len(wallets_config['wallets'])} enabled wallets")
+        for wallet in wallets_config['wallets']:
+            print(f"   - {wallet['name']}: {wallet['id']} ({'enabled' if wallet['enabled'] else 'disabled'})")
+        
+        print(f"\n📊 Found {len([m for m in markets_config['markets'].values() if m.get('enabled', False)])} enabled markets")
         
         # Process each wallet
         for wallet_config in wallets_config['wallets']:
@@ -80,14 +95,20 @@ async def batch_cancel_all_orders():
                         # Get orders using indexer client
                         subaccount_id = address.get_subaccount_id(0)
                         
+                        # Use testnet_market_id for order cancellation (we're on testnet)
+                        testnet_market_id = market_config.get('testnet_market_id')
+                        if not testnet_market_id:
+                            print(f"      ⚠️  No testnet_market_id found for {market_id}")
+                            continue
+                        
                         if market_config.get('type') == 'spot':
                             orders = await indexer_client.fetch_spot_orders(
-                                market_ids=[market_config['market_id']],
+                                market_ids=[testnet_market_id],
                                 subaccount_id=subaccount_id
                             )
                         else:
                             orders = await indexer_client.fetch_derivative_orders(
-                                market_ids=[market_config['market_id']],
+                                market_ids=[testnet_market_id],
                                 subaccount_id=subaccount_id
                             )
                         
@@ -105,7 +126,7 @@ async def batch_cancel_all_orders():
                                 if order_hash and order_state == 'booked':
                                     # Create OrderData for batch cancel
                                     order_data = composer.order_data_without_mask(
-                                        market_id=market_config['market_id'],
+                                        market_id=testnet_market_id,
                                         subaccount_id=subaccount_id,
                                         order_hash=order_hash
                                     )

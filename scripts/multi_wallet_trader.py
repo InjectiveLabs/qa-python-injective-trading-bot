@@ -16,6 +16,7 @@ import asyncio          # This lets us do multiple things at the same time (like
 import json             # This helps us read configuration files (like wallet settings)
 import signal           # This helps us stop the program when you press Ctrl+C
 import sys              # This gives us access to system functions
+import os               # This helps us read environment variables securely
 from typing import Dict, List  # This helps Python understand what type of data we're working with
 from decimal import Decimal    # This helps us do precise math with money (no rounding errors!)
 
@@ -31,23 +32,62 @@ from pyinjective import PrivateKey, Address              # Helps us manage our w
 
 # Load the markets configuration (which trading pairs we want to trade)
 print("📁 Loading market configuration...")
-with open('markets_config.json', 'r') as f:
+with open('config/markets_config.json', 'r') as f:
     markets_config = json.load(f)  # This reads the file and converts it to Python data
 
 # Load the wallets configuration (which wallets we want to use)
-print("📁 Loading wallet configuration...")
-with open('wallets_config.json', 'r') as f:
-    wallets_config = json.load(f)  # This reads the file and converts it to Python data
+print("🔒 Loading wallet configuration from environment variables...")
+# Add parent directory to path to import from utils
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+# Import the secure wallet loader
+from utils.secure_wallet_loader import load_wallets_from_env
+
+# Load wallet configuration securely
+wallets_config = load_wallets_from_env()
+
+# OLD CODE (replaced with secure loader above):
+# with open('config/wallets_config.json', 'r') as f:
 
 # STEP 2: CREATE A LOGGING FUNCTION
-# This function helps us print messages with wallet names so we know which wallet is doing what
+# This function helps us print messages with wallet names and saves them to a log file
+import datetime
+import os
+
 def log(message: str, wallet_id: str = None):
     """
-    This function prints messages with a wallet name prefix
-    Example: log("Hello", "wallet_1") prints: [wallet_1] Hello
+    This function prints messages with a wallet name prefix AND saves them to a log file
+    Example: log("Hello", "wallet_1") prints: [wallet_1] Hello and saves to logs/trading.log
     """
     prefix = f"[{wallet_id}] " if wallet_id else ""  # Add wallet name if provided
-    print(f"{prefix}{message}")
+    formatted_message = f"{prefix}{message}"
+    
+    # Print to console (immediate feedback)
+    print(formatted_message)
+    
+    # Save to log file (persistent storage)
+    try:
+        # Create logs directory if it doesn't exist
+        os.makedirs("logs", exist_ok=True)
+        
+        # Create timestamp for log entry
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"[{timestamp}] {formatted_message}\n"
+        
+        # Check if log file is too large (>10MB) and rotate if needed
+        log_file_path = "logs/trading.log"
+        if os.path.exists(log_file_path) and os.path.getsize(log_file_path) > 10 * 1024 * 1024:  # 10MB
+            # Rotate log file
+            backup_name = f"logs/trading_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+            os.rename(log_file_path, backup_name)
+            print(f"📁 Log file rotated: {backup_name}")
+        
+        # Append to log file
+        with open(log_file_path, "a", encoding="utf-8") as log_file:
+            log_file.write(log_entry)
+    except Exception as e:
+        # If logging fails, don't crash the trading bot
+        print(f"⚠️ Failed to write to log file: {e}")
 
 # STEP 3: CREATE THE WALLET TRADER CLASS
 # This is like a blueprint for each wallet. Each wallet gets its own "trader" that can work independently
@@ -201,12 +241,13 @@ class WalletTrader:
             log(f"❌ Error getting market price: {e}", self.wallet_id)
             return 0.0
     
-    async def get_mainnet_price(self, market_symbol: str) -> float:
+    async def get_mainnet_price(self, market_symbol: str, mainnet_market_id: str = None) -> float:
         """
         This function gets the real market price from Injective mainnet
         This is like checking the real price on a real exchange
         
         market_symbol: The trading pair (like "INJ/USDT")
+        mainnet_market_id: Direct market ID from config (faster) or None to search
         Returns: The real market price as a number
         """
         try:
@@ -216,39 +257,49 @@ class WalletTrader:
             mainnet_network = Network.mainnet()  # Connect to real Injective, not testnet
             mainnet_indexer = IndexerClient(mainnet_network)  # Client to get mainnet data
             
-            # STEP 2: Get all available spot markets from mainnet
-            # We need to find the right market ID for our trading pair
-            markets_response = await asyncio.wait_for(
-                mainnet_indexer.fetch_spot_markets(),  # Get list of all spot markets
-                timeout=10.0  # Wait up to 10 seconds
-            )
+            # Log the endpoints being used for DevOps troubleshooting
+            log(f"🌐 Mainnet endpoints: {mainnet_network.lcd_endpoint} | {mainnet_network.grpc_endpoint}", self.wallet_id)
             
-            # Check if we got valid market data
-            if not markets_response or 'markets' not in markets_response:
-                log(f"❌ No spot markets found on mainnet", self.wallet_id)
-                return 0.0
-            
-            # STEP 3: Find the specific market we want to trade
-            # We need to match our symbol (like "INJ/USDT") with a market ID
-            market_id = None
-            for market in markets_response['markets']:
-                # Get the base token (first part of pair, like "INJ")
-                base_symbol = market.get('baseTokenMeta', {}).get('symbol', '')
-                # Get the quote token (second part of pair, like "USDT")
-                quote_symbol = market.get('quoteTokenMeta', {}).get('symbol', '')
+            # STEP 2: Use direct market ID if provided, otherwise search
+            if mainnet_market_id:
+                # Fast path: Use the market ID directly from config
+                market_id = mainnet_market_id
+                log(f"🚀 Using direct mainnet market ID: {market_id}", self.wallet_id)
+            else:
+                # Fallback: Search for market ID (old method)
+                log(f"🔍 Searching for mainnet market ID for {market_symbol}", self.wallet_id)
+                log(f"📡 API Call: fetch_spot_markets() - Getting list of all spot markets", self.wallet_id)
+                markets_response = await asyncio.wait_for(
+                    mainnet_indexer.fetch_spot_markets(),  # Get list of all spot markets
+                    timeout=10.0  # Wait up to 10 seconds
+                )
                 
-                # Check if this market matches our trading pair
-                if (base_symbol.upper() == market_symbol.split('/')[0].upper() and 
-                    quote_symbol.upper() == market_symbol.split('/')[1].upper()):
-                    market_id = market.get('marketId')  # Found it! Get the market ID
-                    break
+                # Check if we got valid market data
+                if not markets_response or 'markets' not in markets_response:
+                    log(f"❌ No spot markets found on mainnet", self.wallet_id)
+                    return 0.0
+                
+                # Find the specific market we want to trade
+                market_id = None
+                for market in markets_response['markets']:
+                    # Get the base token (first part of pair, like "INJ")
+                    base_symbol = market.get('baseTokenMeta', {}).get('symbol', '')
+                    # Get the quote token (second part of pair, like "USDT")
+                    quote_symbol = market.get('quoteTokenMeta', {}).get('symbol', '')
+                    
+                    # Check if this market matches our trading pair
+                    if (base_symbol.upper() == market_symbol.split('/')[0].upper() and 
+                        quote_symbol.upper() == market_symbol.split('/')[1].upper()):
+                        market_id = market.get('marketId')  # Found it! Get the market ID
+                        break
+                
+                # If we couldn't find the market, log an error
+                if not market_id:
+                    log(f"❌ Market {market_symbol} not found on mainnet", self.wallet_id)
+                    return 0.0
             
-            # If we couldn't find the market, log an error
-            if not market_id:
-                log(f"❌ Market {market_symbol} not found on mainnet", self.wallet_id)
-                return 0.0
-            
-            # STEP 4: Get the orderbook for the market we found
+            # STEP 3: Get the orderbook for the market
+            log(f"📡 API Call: fetch_spot_orderbook_v2(market_id={market_id}, depth=10) - Getting orderbook data", self.wallet_id)
             orderbook = await asyncio.wait_for(
                 mainnet_indexer.fetch_spot_orderbook_v2(market_id=market_id, depth=10),
                 timeout=10.0
@@ -278,10 +329,47 @@ class WalletTrader:
             return 0.0
             
         except asyncio.TimeoutError:
-            log(f"❌ Timeout getting mainnet price", self.wallet_id)
+            log(f"❌ TIMEOUT getting mainnet price for {market_symbol} - Network request exceeded 10s limit", self.wallet_id)
+            log(f"🔧 DevOps Action: Check mainnet endpoint connectivity and response times", self.wallet_id)
             return 0.0
         except Exception as e:
-            log(f"❌ Error getting mainnet price: {e}", self.wallet_id)
+            # Enhanced error logging for DevOps teams
+            error_type = type(e).__name__
+            error_message = str(e)
+            
+            # Extract endpoint information if available
+            mainnet_network = Network.mainnet()
+            endpoints_info = f"LCD: {mainnet_network.lcd_endpoint} | gRPC: {mainnet_network.grpc_endpoint}"
+            
+            # Determine which API call was being made when the error occurred
+            api_call_info = "Unknown API call"
+            if mainnet_market_id:
+                api_call_info = f"fetch_spot_orderbook_v2(market_id={mainnet_market_id})"
+            else:
+                api_call_info = "fetch_spot_markets() or fetch_spot_orderbook_v2()"
+            
+            log(f"❌ MAINNET API ERROR for {market_symbol}", self.wallet_id)
+            log(f"   Failed API Call: {api_call_info}", self.wallet_id)
+            log(f"   Error Type: {error_type}", self.wallet_id)
+            log(f"   Error Message: {error_message}", self.wallet_id)
+            log(f"   Endpoints: {endpoints_info}", self.wallet_id)
+            log(f"   Market ID: {mainnet_market_id or 'Search mode'}", self.wallet_id)
+            
+            # Provide specific troubleshooting guidance based on error type
+            if "503" in error_message or "UNAVAILABLE" in error_message:
+                log(f"🔧 DevOps Action: Mainnet sentry endpoint is down (503/UNAVAILABLE)", self.wallet_id)
+                log(f"   Check: {mainnet_network.grpc_endpoint} health status", self.wallet_id)
+                log(f"   Failed API: {api_call_info}", self.wallet_id)
+            elif "timeout" in error_message.lower():
+                log(f"🔧 DevOps Action: Network timeout - check endpoint response times", self.wallet_id)
+                log(f"   Failed API: {api_call_info}", self.wallet_id)
+            elif "connection" in error_message.lower():
+                log(f"🔧 DevOps Action: Connection refused - verify endpoint accessibility", self.wallet_id)
+                log(f"   Failed API: {api_call_info}", self.wallet_id)
+            else:
+                log(f"🔧 DevOps Action: Investigate {error_type} error in mainnet connectivity", self.wallet_id)
+                log(f"   Failed API: {api_call_info}", self.wallet_id)
+            
             return 0.0
     
     async def place_order(self, market_id: str, side: str, price: float, quantity: float) -> bool:
@@ -322,9 +410,23 @@ class WalletTrader:
             response = await self.broadcaster.broadcast([order_msg])  # Send the order
             
             # STEP 4: Check if the order was successful
-            tx_hash = response.get('txhash', 'unknown')  # Get the transaction hash (like a receipt number)
-            log(f"✅ Order placed successfully! TX: {tx_hash}", self.wallet_id)
-            return True
+            # Handle different response formats that Injective might return
+            tx_hash = (response.get('txhash') or 
+                      response.get('txResponse', {}).get('txhash') or
+                      response.get('tx_response', {}).get('txhash') or
+                      response.get('hash') or
+                      response.get('transaction_hash') or
+                      'unknown')
+            
+            if tx_hash and tx_hash != 'unknown':
+                log(f"✅ Order placed successfully! TX: {tx_hash}", self.wallet_id)
+                return True
+            else:
+                # Log the full response for debugging
+                log(f"⚠️ Order response received but no transaction hash found", self.wallet_id)
+                log(f"📋 Full response: {response}", self.wallet_id)
+                log(f"🔍 Response keys: {list(response.keys()) if isinstance(response, dict) else 'Not a dict'}", self.wallet_id)
+                return False
             
         except Exception as e:
             # If something went wrong, log the error
@@ -549,16 +651,18 @@ class WalletTrader:
                 return True  # Wallet is still in cooldown
         return False  # Wallet is not in cooldown
     
-    async def trading_loop(self, market_id: str, market_symbol: str):
+    async def trading_loop(self, testnet_market_id: str, market_symbol: str, mainnet_market_id: str = None, market_config: dict = None):
         """
         This is the main trading loop for this wallet
         It runs continuously, checking prices and placing orders when needed
         
-        market_id: Which market to trade
+        testnet_market_id: Testnet market ID to trade on
         market_symbol: Trading pair name (like "INJ/USDT")
+        mainnet_market_id: Mainnet market ID for price reference (optional)
+        market_config: Full market configuration (optional)
         """
         self.is_running = True  # Mark this wallet as active
-        log(f"🚀 Starting trading loop for {market_symbol} ({market_id})", self.wallet_id)
+        log(f"🚀 Starting trading loop for {market_symbol} ({testnet_market_id})", self.wallet_id)
         
         # This loop runs forever until we stop it
         while self.is_running:
@@ -568,8 +672,8 @@ class WalletTrader:
                     break
                 
                 # STEP 1: Get current prices from both testnet and mainnet
-                testnet_price = await self.get_market_price(market_id)      # Price on testnet (fake)
-                mainnet_price = await self.get_mainnet_price(market_symbol) # Price on mainnet (real)
+                testnet_price = await self.get_market_price(testnet_market_id)      # Price on testnet (fake)
+                mainnet_price = await self.get_mainnet_price(market_symbol, mainnet_market_id) # Price on mainnet (real)
                 
                 # STEP 2: If we got valid prices, analyze the difference
                 if testnet_price > 0 and mainnet_price > 0:
@@ -588,13 +692,31 @@ class WalletTrader:
                     # Log the current situation
                     log(f"💰 {self.wallet_id} - {market_symbol} | Mainnet: ${mainnet_price:.4f} | Testnet: ${testnet_price:.4f} | Diff: {price_diff_percent:.2f}% | Need to push {arrow} {direction}", self.wallet_id)
                     
-                    # STEP 3: If price difference is significant (>5%), place orders to fix it
-                    if price_diff_percent > 5:
+                    # ============================================================================
+                    # 🎯 PRICE DIFFERENCE THRESHOLD CONTROL - MAIN TRADING DECISION POINT
+                    # ============================================================================
+                    # This is where we decide whether to place orders or not based on price difference
+                    # 
+                    # CURRENT BEHAVIOR:
+                    # - If price difference < 5%: NO ORDERS PLACED (just monitoring)
+                    # - If price difference ≥ 5%: ORDERS PLACED to correct the price
+                    #
+                    # NOTE: This uses a hard-coded 5% threshold, ignoring the market-specific
+                    #       'deviation_threshold' values defined in markets_config.json
+                    #       (INJ/USDT: 5.0%, INJ/USDT-PERP: 3.0%, BTC/USDT-PERP: 2.0%, etc.)
+                    #
+                    # TO MODIFY THE THRESHOLD: Change the number '5' below to your desired percentage
+                    # ============================================================================
+                    if price_diff_percent > 2:  # ← CHANGE THIS NUMBER TO ADJUST THRESHOLD
                         # Create rich orderbook with multiple smaller orders
-                        await self.place_rich_orderbook(market_id, testnet_price, mainnet_price, market_symbol)
+                        await self.place_rich_orderbook(testnet_market_id, testnet_price, mainnet_price, market_symbol)
+                    else:
+                        # Price difference is within threshold - no trading needed
+                        log(f"⏸️ {self.wallet_id} - {market_symbol} | Price difference {price_diff_percent:.2f}% is within threshold (2%) - NO TRADES PLACED | Monitoring only", self.wallet_id)
                 
                 # STEP 4: Wait 10 seconds before checking prices again
                 # We check for stop signal every second during the wait
+                log(f"⏰ {self.wallet_id} - {market_symbol} | Waiting 10 seconds before next price check...", self.wallet_id)
                 for _ in range(10):
                     if not self.is_running:  # User wants to stop
                         break
@@ -645,8 +767,10 @@ async def main():
         if market_config.get('enabled', False) and market_config.get('type') == 'spot':
             # Only use markets that are enabled and are spot markets (not derivatives)
             enabled_markets.append({
-                'symbol': market_symbol,                    # Trading pair name (like "INJ/USDT")
-                'market_id': market_config['market_id']     # Market ID on the blockchain
+                'symbol': market_symbol,                                    # Trading pair name (like "INJ/USDT")
+                'testnet_market_id': market_config.get('testnet_market_id', market_config.get('market_id')),  # Testnet market ID
+                'mainnet_market_id': market_config.get('mainnet_market_id'),  # Mainnet market ID for price reference
+                'market_config': market_config                              # Full config for this market
             })
     
     # Check if we have any markets to trade
@@ -656,7 +780,7 @@ async def main():
     
     log(f"📊 Found {len(enabled_markets)} enabled spot markets")
     for market in enabled_markets:
-        log(f"   {market['symbol']}: {market['market_id']}")
+        log(f"   {market['symbol']}: Testnet={market['testnet_market_id']}, Mainnet={market['mainnet_market_id']}")
     
     # STEP 3: Create and initialize all wallet traders
     traders = []
@@ -666,41 +790,74 @@ async def main():
         await trader.initialize()  # Set up the wallet
         traders.append(trader)     # Add to our list of traders
     
-    # STEP 4: Set up signal handling for graceful shutdown
-    # This allows us to stop the program when user presses Ctrl+C
-    def signal_handler(signum, frame):
-        log("🛑 Received shutdown signal, stopping all traders...")
-        for trader in traders:
-            trader.stop()  # Stop each trader
-    
-    signal.signal(signal.SIGINT, signal_handler)   # Handle Ctrl+C
-    signal.signal(signal.SIGTERM, signal_handler)  # Handle termination signal
-    
-    # STEP 5: Start trading loops for each wallet and market combination
+    # STEP 4: Start trading loops for each wallet and market combination
     tasks = []
     for trader in traders:
         for market in enabled_markets:
             # Create a task for each wallet trading each market
             # This allows all wallets to trade all markets simultaneously
-            task = asyncio.create_task(trader.trading_loop(market['market_id'], market['symbol']))
+            task = asyncio.create_task(trader.trading_loop(
+                market['testnet_market_id'], 
+                market['symbol'],
+                market['mainnet_market_id'],
+                market['market_config']
+            ))
             tasks.append(task)
+    
+    # STEP 5: Set up signal handling for graceful shutdown
+    # This allows us to stop the program when user presses Ctrl+C
+    shutdown_requested = False
+    
+    def signal_handler(signum, frame):
+        nonlocal shutdown_requested
+        if not shutdown_requested:  # Prevent multiple shutdown signals
+            shutdown_requested = True
+            log("🛑 Received shutdown signal, stopping all traders...")
+            for trader in traders:
+                trader.stop()  # Stop each trader
+            
+            # Cancel all running tasks
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+    
+    signal.signal(signal.SIGINT, signal_handler)   # Handle Ctrl+C
+    signal.signal(signal.SIGTERM, signal_handler)  # Handle termination signal
     
     log(f"🎯 Started {len(tasks)} trading tasks ({len(traders)} wallets × {len(enabled_markets)} markets)")
     
     # STEP 6: Wait for all trading tasks to complete
     try:
         # This runs all the trading tasks in parallel
-        await asyncio.gather(*tasks)
+        await asyncio.gather(*tasks, return_exceptions=True)
     except KeyboardInterrupt:
         # User pressed Ctrl+C
         log("🛑 Keyboard interrupt received")
+    except asyncio.CancelledError:
+        # Tasks were cancelled (normal shutdown)
+        log("🛑 Tasks cancelled during shutdown")
     except Exception as e:
         # Something went wrong in the main loop
         log(f"❌ Error in main loop: {e}")
     finally:
         # Always stop all traders when we're done
+        log("🛑 Stopping all traders...")
         for trader in traders:
             trader.stop()
+        
+        # Cancel any remaining tasks
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        
+        # Wait a moment for tasks to finish cancelling
+        try:
+            await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=5.0)
+        except asyncio.TimeoutError:
+            log("⚠️ Some tasks took too long to cancel")
+        except Exception:
+            pass  # Ignore errors during cleanup
+        
         log("✅ All traders stopped")
 
 # STEP 5: RUN THE PROGRAM

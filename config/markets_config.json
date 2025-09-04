@@ -19,6 +19,25 @@
         "correction_cooldown": 300
       }
     },
+    "stINJ/INJ": {
+      "testnet_market_id": "0xf02752c2c87728af7fd10a298a8a645261859eafd0295dcda7e2c5b45c8412cf",
+      "mainnet_market_id": "0xce1829d4942ed939580e72e66fd8be3502396fc840b6d12b2d676bdb86542363",
+      "enabled": true,
+      "type": "spot",
+      "spread_percent": 0.3,
+      "order_size": 10,
+      "min_spread": 0.05,
+      "max_spread": 1.5,
+      "max_wallets": 3,
+      "orders_per_wallet": 3,
+      "price_correction": {
+        "enabled": true,
+        "deviation_threshold": 3.0,
+        "correction_aggressiveness": 0.7,
+        "max_correction_size": 100,
+        "correction_cooldown": 240
+      }
+    },
     "INJ/USDT-PERP": {
       "testnet_market_id": "0x17ef48032cb24375ba7c2e39f384e56433bcab20cbee9a7357e4cba2eb00abe6",
       "mainnet_market_id": "0x9b9980167ecc3645ff1a5517886652d94a0825e54a77d2057cbbe3ebee015963",

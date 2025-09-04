@@ -131,8 +131,151 @@ class WalletTrader:
         self.is_running = False                       # Whether this wallet is currently trading
         self.in_cooldown = False                      # Whether this wallet is temporarily paused
         self.cooldown_until = 0                       # When the cooldown ends
+        
+        # Trading statistics tracking
+        self.trading_stats = {
+            'total_trades': 0,
+            'successful_trades': 0,
+            'failed_trades': 0,
+            'markets': {}  # Will store per-market statistics
+        }
         self.sequence_mismatch_count = 0              # How many times we've had sequence problems
         
+    def track_trade(self, market_symbol: str, side: str, success: bool, tx_hash: str = None, price: float = None, size: float = None):
+        """Track trading statistics for this wallet"""
+        self.trading_stats['total_trades'] += 1
+        
+        if success:
+            self.trading_stats['successful_trades'] += 1
+        else:
+            self.trading_stats['failed_trades'] += 1
+        
+        # Initialize market stats if not exists
+        if market_symbol not in self.trading_stats['markets']:
+            self.trading_stats['markets'][market_symbol] = {
+                'total_trades': 0,
+                'successful_trades': 0,
+                'failed_trades': 0,
+                'buy_trades': 0,
+                'sell_trades': 0,
+                'transactions': []
+            }
+        
+        # Update market-specific stats
+        market_stats = self.trading_stats['markets'][market_symbol]
+        market_stats['total_trades'] += 1
+        
+        if success:
+            market_stats['successful_trades'] += 1
+        else:
+            market_stats['failed_trades'] += 1
+        
+        if side.upper() == 'BUY':
+            market_stats['buy_trades'] += 1
+        else:
+            market_stats['sell_trades'] += 1
+        
+        # Store transaction details
+        if tx_hash:
+            market_stats['transactions'].append({
+                'tx_hash': tx_hash,
+                'side': side,
+                'success': success,
+                'price': price,
+                'size': size,
+                'timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            })
+    
+    def get_trading_summary(self) -> str:
+        """Generate a beautiful trading summary for this wallet"""
+        if not self.trading_stats['markets']:
+            return f"📊 {self.wallet_id}: No trades executed"
+        
+        summary = f"\n{'='*80}\n"
+        summary += f"📊 TRADING SUMMARY - {self.wallet_id.upper()}\n"
+        summary += f"{'='*80}\n"
+        summary += f"🎯 Total Trades: {self.trading_stats['total_trades']}\n"
+        summary += f"✅ Successful: {self.trading_stats['successful_trades']}\n"
+        summary += f"❌ Failed: {self.trading_stats['failed_trades']}\n"
+        summary += f"📈 Success Rate: {(self.trading_stats['successful_trades']/max(1, self.trading_stats['total_trades'])*100):.1f}%\n"
+        summary += f"{'='*80}\n"
+        
+        for market_symbol, market_stats in self.trading_stats['markets'].items():
+            summary += f"\n📈 MARKET: {market_symbol}\n"
+            summary += f"   Total Trades: {market_stats['total_trades']}\n"
+            summary += f"   ✅ Successful: {market_stats['successful_trades']}\n"
+            summary += f"   ❌ Failed: {market_stats['failed_trades']}\n"
+            summary += f"   📊 Buy Orders: {market_stats['buy_trades']}\n"
+            summary += f"   📊 Sell Orders: {market_stats['sell_trades']}\n"
+            
+            if market_stats['transactions']:
+                summary += f"   🔗 Recent Transactions:\n"
+                for tx in market_stats['transactions'][-5:]:  # Show last 5 transactions
+                    status_emoji = "✅" if tx['success'] else "❌"
+                    price_unit = "INJ" if 'stinj' in market_symbol.lower() else "$"
+                    summary += f"      {status_emoji} {tx['side']} {tx['size']} INJ at {price_unit}{tx['price']:.4f} | TX: {tx['tx_hash'][:16]}... | {tx['timestamp']}\n"
+        
+        summary += f"{'='*80}\n"
+        return summary
+        
+    async def check_balance(self, token_denom: str = "inj") -> float:
+        """
+        Check the current balance of this wallet
+        
+        Args:
+            token_denom: Token denomination to check (default: "inj")
+            
+        Returns:
+            Balance amount as float
+        """
+        try:
+            # Get account balance using the bank module (correct way for Injective)
+            balances_response = await self.async_client.fetch_bank_balances(self.address.to_acc_bech32())
+            
+            if not balances_response:
+                log(f"❌ No balance response for balance check", self.wallet_id)
+                return 0.0
+            
+            # Extract balances from the response
+            balances = []
+            if hasattr(balances_response, 'balances'):
+                balances = list(balances_response.balances)
+            elif isinstance(balances_response, dict) and 'balances' in balances_response:
+                balances = balances_response['balances']
+            
+            # Find the specific token balance
+            for bal in balances:
+                # Handle different balance object formats
+                denom = None
+                amount = None
+                
+                if hasattr(bal, 'denom') and hasattr(bal, 'amount'):
+                    denom = bal.denom
+                    amount = bal.amount
+                elif isinstance(bal, dict):
+                    denom = bal.get('denom')
+                    amount = bal.get('amount')
+                
+                if denom == token_denom and amount:
+                    # Convert from smallest unit to main unit
+                    balance_amount = Decimal(str(amount))
+                    if token_denom == 'inj':
+                        # INJ has 18 decimals
+                        balance = float(balance_amount / Decimal('1000000000000000000'))
+                    else:
+                        # For other tokens, assume 6 decimals (common for USDT, etc.)
+                        balance = float(balance_amount / Decimal('1000000'))
+                    
+                    log(f"💰 Balance: {balance:.4f} {token_denom.upper()}", self.wallet_id)
+                    return balance
+            
+            log(f"⚠️ No {token_denom.upper()} balance found", self.wallet_id)
+            return 0.0
+            
+        except Exception as e:
+            log(f"❌ Error checking balance: {e}", self.wallet_id)
+            return 0.0
+
     async def initialize(self):
         """
         This function sets up everything the wallet needs to start trading
@@ -175,16 +318,27 @@ class WalletTrader:
                 composer=self.composer,                  # Our order composer
             )
             
+            # STEP 5: Check wallet balance
+            inj_balance = await self.check_balance("inj")
+            
             # Success! Log what we've set up
             log(f"✅ Wallet initialized: {self.address.to_acc_bech32()}", self.wallet_id)
             log(f"   Sequence: {self.sequence}, Account: {self.account_number}", self.wallet_id)
+            
+            # Warn if balance is low
+            if inj_balance < 1.0:
+                log(f"⚠️ WARNING: Low INJ balance ({inj_balance:.4f} INJ). Consider adding more tokens.", self.wallet_id)
+            elif inj_balance < 10.0:
+                log(f"💡 INFO: Moderate INJ balance ({inj_balance:.4f} INJ). Good for testing.", self.wallet_id)
+            else:
+                log(f"🚀 EXCELLENT: High INJ balance ({inj_balance:.4f} INJ). Ready for serious trading!", self.wallet_id)
             
         except Exception as e:
             # If something goes wrong, log the error and stop
             log(f"❌ Failed to initialize wallet: {e}", self.wallet_id)
             raise  # This stops the program because we can't trade without a working wallet
     
-    async def get_market_price(self, market_id: str) -> float:
+    async def get_market_price(self, market_id: str, market_symbol: str = "") -> float:
         """
         This function gets the current price from the testnet (fake market)
         It's like checking the price on a test exchange
@@ -218,14 +372,25 @@ class WalletTrader:
                     best_ask = Decimal(str(sells[0]['price']))
                     
                     # IMPORTANT: Blockchain prices are in tiny units, we need to scale them up
-                    # For INJ/USDT, we multiply by 10^12 to get the real price
-                    price_scale_factor = Decimal('1000000000000')  # 10^12
+                    # For stINJ/INJ pairs, we need different scaling since both tokens have 18 decimals
+                    if 'stinj' in market_symbol.lower():
+                        # stINJ/INJ: both tokens have 18 decimals, so no scaling needed
+                        price_scale_factor = Decimal('1')
+                    else:
+                        # INJ/USDT: INJ has 18 decimals, USDT has 6 decimals, so scale by 10^12
+                        price_scale_factor = Decimal('1000000000000')  # 10^12
+                    
                     best_bid_scaled = best_bid * price_scale_factor  # Convert to real price
                     best_ask_scaled = best_ask * price_scale_factor  # Convert to real price
                     
                     # Calculate the mid price (average of best buy and best sell)
                     mid_price = float((best_bid_scaled + best_ask_scaled) / 2)
-                    log(f"✅ Testnet price: ${mid_price:.4f}", self.wallet_id)
+                    
+                    # Display price with correct units
+                    if 'stinj' in market_symbol.lower():
+                        log(f"✅ Testnet price: {mid_price:.4f} INJ per stINJ", self.wallet_id)
+                    else:
+                        log(f"✅ Testnet price: ${mid_price:.4f}", self.wallet_id)
                     return mid_price
             
             # If we couldn't get a price, log a warning
@@ -316,13 +481,25 @@ class WalletTrader:
                     best_ask = Decimal(str(sells[0]['price']))
                     
                     # Scale up the prices (blockchain uses tiny units)
-                    price_scale_factor = Decimal('1000000000000')  # 10^12
+                    # For stINJ/INJ pairs, we need different scaling since both tokens have 18 decimals
+                    if 'stinj' in market_symbol.lower():
+                        # stINJ/INJ: both tokens have 18 decimals, so no scaling needed
+                        price_scale_factor = Decimal('1')
+                    else:
+                        # INJ/USDT: INJ has 18 decimals, USDT has 6 decimals, so scale by 10^12
+                        price_scale_factor = Decimal('1000000000000')  # 10^12
+                    
                     best_bid_scaled = best_bid * price_scale_factor
                     best_ask_scaled = best_ask * price_scale_factor
                     
                     # Calculate mid price
                     mid_price = float((best_bid_scaled + best_ask_scaled) / 2)
-                    log(f"✅ Mainnet price: ${mid_price:.4f}", self.wallet_id)
+                    
+                    # Display price with correct units
+                    if 'stinj' in market_symbol.lower():
+                        log(f"✅ Mainnet price: {mid_price:.4f} INJ per stINJ", self.wallet_id)
+                    else:
+                        log(f"✅ Mainnet price: ${mid_price:.4f}", self.wallet_id)
                     return mid_price
             
             log(f"⚠️ No mainnet price data", self.wallet_id)
@@ -372,7 +549,7 @@ class WalletTrader:
             
             return 0.0
     
-    async def place_order(self, market_id: str, side: str, price: float, quantity: float) -> bool:
+    async def place_order(self, market_id: str, side: str, price: float, quantity: float, market_symbol: str = None) -> bool:
         """
         This function places a single order on the blockchain
         It's like submitting a buy or sell order to an exchange
@@ -420,17 +597,26 @@ class WalletTrader:
             
             if tx_hash and tx_hash != 'unknown':
                 log(f"✅ Order placed successfully! TX: {tx_hash}", self.wallet_id)
+                # Track successful trade
+                if market_symbol:
+                    self.track_trade(market_symbol, side, True, tx_hash, price, quantity)
                 return True
             else:
                 # Log the full response for debugging
                 log(f"⚠️ Order response received but no transaction hash found", self.wallet_id)
                 log(f"📋 Full response: {response}", self.wallet_id)
                 log(f"🔍 Response keys: {list(response.keys()) if isinstance(response, dict) else 'Not a dict'}", self.wallet_id)
+                # Track failed trade
+                if market_symbol:
+                    self.track_trade(market_symbol, side, False, None, price, quantity)
                 return False
             
         except Exception as e:
             # If something went wrong, log the error
             log(f"❌ Failed to place order: {e}", self.wallet_id)
+            # Track failed trade
+            if market_symbol:
+                self.track_trade(market_symbol, side, False, None, price, quantity)
             return False
     
     async def place_rich_orderbook(self, market_id: str, testnet_price: float, mainnet_price: float, market_symbol: str):
@@ -462,13 +648,19 @@ class WalletTrader:
                 side = "BUY"
                 base_price = testnet_price
                 movement = "UP"
-                log(f"📈 {self.wallet_id} - Price difference: {price_diff_percent:.2f}% | Pushing price UP from ${testnet_price:.4f} → ${mainnet_price:.4f}", self.wallet_id)
+                if 'stinj' in market_symbol.lower():
+                    log(f"📈 {self.wallet_id} - Price difference: {price_diff_percent:.2f}% | Pushing price UP from {testnet_price:.4f} INJ → {mainnet_price:.4f} INJ", self.wallet_id)
+                else:
+                    log(f"📈 {self.wallet_id} - Price difference: {price_diff_percent:.2f}% | Pushing price UP from ${testnet_price:.4f} → ${mainnet_price:.4f}", self.wallet_id)
             else:
                 # Testnet price is too high, we need to push it DOWN by placing SELL orders
                 side = "SELL"
                 base_price = testnet_price
                 movement = "DOWN"
-                log(f"📉 {self.wallet_id} - Price difference: {price_diff_percent:.2f}% | Pushing price DOWN from ${testnet_price:.4f} → ${mainnet_price:.4f}", self.wallet_id)
+                if 'stinj' in market_symbol.lower():
+                    log(f"📉 {self.wallet_id} - Price difference: {price_diff_percent:.2f}% | Pushing price DOWN from {testnet_price:.4f} INJ → {mainnet_price:.4f} INJ", self.wallet_id)
+                else:
+                    log(f"📉 {self.wallet_id} - Price difference: {price_diff_percent:.2f}% | Pushing price DOWN from ${testnet_price:.4f} → ${mainnet_price:.4f}", self.wallet_id)
             
             # STEP 3: Set up tracking variables
             orders_placed = 0      # How many orders we successfully placed
@@ -542,8 +734,11 @@ class WalletTrader:
                     
                 # STEP 8: Place the actual order
                 try:
-                    log(f"📤 {self.wallet_id} - Placing {side} order {i+1}: {size} INJ at ${price:.4f} (moving price {movement})", self.wallet_id)
-                    success = await self.place_order(market_id, side, price, size)
+                    if 'stinj' in market_symbol.lower():
+                        log(f"📤 {self.wallet_id} - Placing {side} order {i+1}: {size} INJ at {price:.4f} INJ (moving price {movement})", self.wallet_id)
+                    else:
+                        log(f"📤 {self.wallet_id} - Placing {side} order {i+1}: {size} INJ at ${price:.4f} (moving price {movement})", self.wallet_id)
+                    success = await self.place_order(market_id, side, price, size, market_symbol)
                     
                     if success:
                         # Order was placed successfully!
@@ -672,7 +867,7 @@ class WalletTrader:
                     break
                 
                 # STEP 1: Get current prices from both testnet and mainnet
-                testnet_price = await self.get_market_price(testnet_market_id)      # Price on testnet (fake)
+                testnet_price = await self.get_market_price(testnet_market_id, market_symbol)      # Price on testnet (fake)
                 mainnet_price = await self.get_mainnet_price(market_symbol, mainnet_market_id) # Price on mainnet (real)
                 
                 # STEP 2: If we got valid prices, analyze the difference
@@ -689,8 +884,11 @@ class WalletTrader:
                         direction = "UP"    # Testnet price is too low, need to push it up
                         arrow = "📈"
                     
-                    # Log the current situation
-                    log(f"💰 {self.wallet_id} - {market_symbol} | Mainnet: ${mainnet_price:.4f} | Testnet: ${testnet_price:.4f} | Diff: {price_diff_percent:.2f}% | Need to push {arrow} {direction}", self.wallet_id)
+                    # Log the current situation with correct units
+                    if 'stinj' in market_symbol.lower():
+                        log(f"💰 {self.wallet_id} - {market_symbol} | Mainnet: {mainnet_price:.4f} INJ | Testnet: {testnet_price:.4f} INJ | Diff: {price_diff_percent:.2f}% | Need to push {arrow} {direction}", self.wallet_id)
+                    else:
+                        log(f"💰 {self.wallet_id} - {market_symbol} | Mainnet: ${mainnet_price:.4f} | Testnet: ${testnet_price:.4f} | Diff: {price_diff_percent:.2f}% | Need to push {arrow} {direction}", self.wallet_id)
                     
                     # ============================================================================
                     # 🎯 PRICE DIFFERENCE THRESHOLD CONTROL - MAIN TRADING DECISION POINT
@@ -859,6 +1057,36 @@ async def main():
             pass  # Ignore errors during cleanup
         
         log("✅ All traders stopped")
+        
+        # STEP 6: Show trading summary for each wallet
+        log("\n" + "="*80)
+        log("📊 FINAL TRADING SUMMARY")
+        log("="*80)
+        
+        total_trades = 0
+        total_successful = 0
+        total_failed = 0
+        
+        for trader in traders:
+            summary = trader.get_trading_summary()
+            log(summary)
+            
+            # Add to totals
+            total_trades += trader.trading_stats['total_trades']
+            total_successful += trader.trading_stats['successful_trades']
+            total_failed += trader.trading_stats['failed_trades']
+        
+        # Overall summary
+        log(f"\n{'='*80}")
+        log(f"🎯 OVERALL SUMMARY")
+        log(f"{'='*80}")
+        log(f"💰 Wallets: {len(traders)}")
+        log(f"🎯 Total Trades: {total_trades}")
+        log(f"✅ Successful: {total_successful}")
+        log(f"❌ Failed: {total_failed}")
+        if total_trades > 0:
+            log(f"📈 Overall Success Rate: {(total_successful/total_trades*100):.1f}%")
+        log(f"{'='*80}")
 
 # STEP 5: RUN THE PROGRAM
 # This is the entry point - when you run this script, this is what happens

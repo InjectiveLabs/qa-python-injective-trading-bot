@@ -1,8 +1,8 @@
-# 🚀 Injective Multi-Wallet Trading Bot | GM! LFG! 🚀
+# 🤖 QA Injective MM Bot | Professional Market Making System 🚀
 
-> **"The only bot that makes more money than your uncle's crypto advice"** 💎🙌
+> **"Professional-grade market making bot for Injective Protocol"** 💎
 
-A **BEAST MODE** multi-wallet market making bot for Injective testnet that's so smooth, it makes butter jealous! 🧈✨
+A sophisticated multi-wallet market making system for Injective Protocol that provides real-time price correction between testnet and mainnet, complete with a modern web dashboard for monitoring and control.
 
 ## 🎯 What This Bad Boy Does
 
@@ -35,33 +35,222 @@ Think of this as your **personal army of trading bots** that:
 - **📊 Balance Monitoring** - Tracks wallet balances and sequence numbers in real-time
 - **🔄 Graceful Error Recovery** - Automatically refreshes sequences and retries failed orders
 
-## 🏗️ Architecture (The Blueprint of Success)
+## 🏗️ System Architecture
+
+### 🎯 High-Level Architecture
+
+```mermaid
+graph TB
+    subgraph "🌐 Web Dashboard"
+        UI[📱 Web Interface]
+        API[🚀 FastAPI Backend]
+        WS[⚡ WebSocket Server]
+    end
+    
+    subgraph "🤖 Trading Engine"
+        MWT[📱 Multi-Wallet Trader]
+        WT1[🎯 Wallet 1 Trader]
+        WT2[🎯 Wallet 2 Trader]
+        WT3[🎯 Wallet 3 Trader]
+    end
+    
+    subgraph "🌐 Injective Networks"
+        TN[🧪 Testnet]
+        MN[🌐 Mainnet]
+    end
+    
+    subgraph "📊 Data Layer"
+        CONFIG[⚙️ Configuration]
+        LOGS[📝 Logs]
+        DATA[📊 Market Data]
+    end
+    
+    UI --> API
+    API --> WS
+    WS --> MWT
+    MWT --> WT1
+    MWT --> WT2
+    MWT --> WT3
+    
+    WT1 --> TN
+    WT2 --> TN
+    WT3 --> TN
+    
+    MWT --> MN
+    
+    MWT --> CONFIG
+    MWT --> LOGS
+    MWT --> DATA
+    
+    API --> CONFIG
+    API --> LOGS
+```
+
+### 🔄 Trading Flow Diagram
+
+```mermaid
+sequenceDiagram
+    participant W as 🌐 Web Dashboard
+    participant B as 🤖 Bot Engine
+    participant T as 🧪 Testnet
+    participant M as 🌐 Mainnet
+    
+    W->>B: Start Bot Command
+    B->>T: Connect to Testnet
+    B->>M: Connect to Mainnet
+    
+    loop Trading Cycle
+        B->>T: Get Testnet Price
+        B->>M: Get Mainnet Price
+        B->>B: Calculate Price Difference
+        
+        alt Price Difference > Threshold
+            B->>T: Place Correction Orders
+            B->>W: Update Status & Logs
+        else Price Difference < Threshold
+            B->>W: Update Status (Monitoring)
+        end
+        
+        B->>B: Wait 10 seconds
+    end
+    
+    W->>B: Stop Bot Command
+    B->>T: Cancel All Orders
+    B->>W: Update Status (Stopped)
+```
+
+### 🏗️ Component Architecture
 
 ```
-🚀 Your Trading Empire
-├── 📱 multi_wallet_trader.py     # The main boss (runs everything)
-│   ├── 🎯 WalletTrader Class     # Individual wallet management
-│   ├── ⚡ Parallel Execution      # Multi-wallet coordination
-│   ├── 📊 Price Correction Logic  # Mainnet/testnet price alignment
-│   └── 🎪 Rich Orderbook Creation # Randomized order placement
+🚀 QA Injective MM Bot System
+├── 🌐 Web Dashboard (web/)
+│   ├── 📱 Frontend
+│   │   ├── index.html          # Main dashboard UI
+│   │   ├── script.js           # Real-time JavaScript logic
+│   │   └── styles.css          # Tailwind CSS styling
+│   │
+│   ├── 🚀 Backend
+│   │   ├── app.py              # FastAPI application
+│   │   ├── requirements.txt    # Python dependencies
+│   │   └── static/             # Static web assets
+│   │
+│   └── 🔧 Features
+│       ├── ⚡ WebSocket real-time updates
+│       ├── 📊 Live bot status monitoring
+│       ├── 💰 Wallet balance tracking
+│       ├── 🎛️ Bot start/stop controls
+│       └── 📝 Live activity feed
 │
-├── 🛑 batch_cancel_orders.py     # Emergency stop button
-│   ├── 🔥 Multi-Wallet Support    # Cancels orders from all wallets
-│   ├── 📈 Spot & Derivative Orders # Supports both market types
-│   └── ⚡ Batch Operations        # Efficient bulk cancellation
+├── 🤖 Trading Engine (scripts/)
+│   ├── 📱 multi_wallet_trader.py    # Main trading system
+│   │   ├── 🎯 WalletTrader Class    # Individual wallet management
+│   │   ├── ⚡ Parallel Execution     # Multi-wallet coordination
+│   │   ├── 📊 Price Correction Logic # Mainnet/testnet alignment
+│   │   └── 🎪 Rich Orderbook Creation # Randomized orders
+│   │
+│   └── 🛑 batch_cancel_orders.py    # Emergency order cancellation
+│       ├── 🔥 Multi-Wallet Support  # Cancel from all wallets
+│       ├── 📈 Spot & Derivative     # Support both market types
+│       └── ⚡ Batch Operations      # Efficient bulk cancellation
 │
-├── 📊 data/                      # Market data storage
+├── ⚙️ Configuration (config/)
+│   ├── markets_config.json          # Market definitions & settings
+│   └── README.md                    # Configuration documentation
+│
+├── 📊 Data Layer (data/)
 │   ├── 🌐 mainnet_*_market_data.json # Real market data
 │   ├── 🧪 testnet_*_market_data.json # Testnet market data
-│   └── 📋 *_comparison_report.txt    # Market comparison reports
+│   └── 📋 *_comparison_report.txt    # Market analysis reports
 │
-└── 🛠️ utils/                     # Essential utilities
-    ├── 📝 logger.py              # Logging functionality
-    ├── 🔒 secure_wallet_loader.py # Secure wallet configuration
-    └── 📊 market_comparison_unified.py # Market data comparison tool
+├── 🛠️ Utilities (utils/)
+│   ├── 📝 logger.py                  # Centralized logging
+│   ├── 🔒 secure_wallet_loader.py   # Secure wallet management
+│   ├── 📊 market_comparison_unified.py # Market data analysis
+│   └── 💰 balance_checker.py        # Wallet balance monitoring
+│
+└── 🔐 Security
+    ├── .env                         # Encrypted wallet keys
+    ├── env.example                  # Configuration template
+    └── logs/                        # Secure log storage
 ```
 
-## 🚀 Quick Start (From Zero to Hero)
+## 🌐 Web Dashboard
+
+The QA Injective MM Bot includes a modern web dashboard for real-time monitoring and control:
+
+### 🎮 Dashboard Features
+- **📊 Real-time Bot Status** - Live monitoring of bot state (Running/Stopped)
+- **💰 Wallet Balance Tracking** - Real-time balance updates for all wallets
+- **📈 Market Data Display** - Current market information and trading pairs
+- **📝 Live Activity Feed** - Real-time trading logs and system events
+- **🎛️ Bot Controls** - Start/Stop bot functionality
+- **🌐 Network Status** - Shows which network the bot is running on (Testnet/Mainnet)
+- **📱 Responsive Design** - Works on desktop, tablet, and mobile devices
+
+### 🚀 Launching the Web Dashboard
+
+1. **Start the Web Server**:
+```bash
+cd web
+python app.py
+```
+
+2. **Access the Dashboard**:
+- Open your browser and go to: `http://localhost:8000`
+- The dashboard will automatically connect via WebSocket for real-time updates
+
+3. **Dashboard Controls**:
+- **Start Bot**: Click the green "Start Bot" button to begin trading
+- **Stop Bot**: Click the red "Stop Bot" button to halt all trading
+- **Refresh Balances**: Manually refresh wallet balance data
+- **View Logs**: Access full trading logs in a modal window
+
+### 🔧 Web Interface Architecture
+
+```
+🌐 Web Dashboard
+├── 📱 Frontend (HTML/CSS/JavaScript)
+│   ├── 🎨 Modern UI with Tailwind CSS
+│   ├── ⚡ Real-time WebSocket updates
+│   ├── 📊 Interactive charts and status indicators
+│   └── 📱 Responsive mobile design
+│
+├── 🚀 Backend (FastAPI)
+│   ├── 🔌 REST API endpoints
+│   ├── 🌐 WebSocket connections
+│   ├── 📊 Real-time data streaming
+│   └── 🎛️ Bot control interface
+│
+└── 📊 Data Integration
+    ├── 📈 Live market data
+    ├── 💰 Wallet balance tracking
+    ├── 📝 Trading log streaming
+    └── ⚙️ Configuration management
+```
+
+## 🚀 Complete System Launch
+
+### 🎯 Two Ways to Run the Bot
+
+#### Option 1: 🌐 Web Dashboard (Recommended)
+```bash
+# 1. Start the web dashboard
+cd web
+python app.py
+
+# 2. Open browser to http://localhost:8000
+# 3. Use the web interface to start/stop the bot
+# 4. Monitor real-time status, balances, and logs
+```
+
+#### Option 2: 🤖 Command Line Only
+```bash
+# 1. Start the trading bot directly
+python scripts/multi_wallet_trader.py
+
+# 2. Monitor via console output and log files
+# 3. Use Ctrl+C to stop
+```
 
 ### 📋 Prerequisites
 - **Python 3.8+** (because we're not living in the stone age)
@@ -136,6 +325,103 @@ python3 scripts/batch_cancel_orders.py
 ```
 
 ## 🎮 How It Works (The Magic Behind the Curtain)
+
+### 🔄 Trading Logic Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    🤖 QA Injective MM Bot Logic                │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   🧪 Testnet │    │   🌐 Mainnet │    │   📊 Bot Logic │
+│   Prices    │    │   Prices    │    │   Engine    │
+└─────────────┘    └─────────────┘    └─────────────┘
+       │                   │                   │
+       │ Get Testnet Price │                   │
+       ├──────────────────►│                   │
+       │                   │ Get Mainnet Price │
+       │                   ├──────────────────►│
+       │                   │                   │
+       │                   │                   │ Calculate
+       │                   │                   │ Price Diff
+       │                   │                   │
+       │                   │                   │
+       │                   │                   │ Price Diff
+       │                   │                   │ > 2%?
+       │                   │                   │
+       │                   │                   │ ┌─────────┐
+       │                   │                   │ │   YES   │
+       │                   │                   │ └─────────┘
+       │                   │                   │      │
+       │                   │                   │      │
+       │                   │                   │      ▼
+       │                   │                   │ ┌─────────────┐
+       │                   │                   │ │ 🎪 Place    │
+       │                   │                   │ │ Orders to   │
+       │                   │                   │ │ Correct     │
+       │                   │                   │ │ Price       │
+       │                   │                   │ └─────────────┘
+       │                   │                   │      │
+       │                   │                   │      │
+       │                   │                   │      ▼
+       │                   │                   │ ┌─────────────┐
+       │                   │                   │ │ ⏰ Wait 10s │
+       │                   │                   │ │ & Repeat    │
+       │                   │                   │ └─────────────┘
+       │                   │                   │
+       │                   │                   │ ┌─────────┐
+       │                   │                   │ │   NO    │
+       │                   │                   │ └─────────┘
+       │                   │                   │      │
+       │                   │                   │      │
+       │                   │                   │      ▼
+       │                   │                   │ ┌─────────────┐
+       │                   │                   │ │ ⏸️ Monitor  │
+       │                   │                   │ │ Only        │
+       │                   │                   │ └─────────────┘
+       │                   │                   │      │
+       │                   │                   │      │
+       │                   │                   │      ▼
+       │                   │                   │ ┌─────────────┐
+       │                   │                   │ │ ⏰ Wait 10s │
+       │                   │                   │ │ & Repeat    │
+       │                   │                   │ └─────────────┘
+```
+
+### 🎯 Multi-Wallet Parallel Execution
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    🎯 Multi-Wallet Coordination                │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  💰 Wallet 1 │    │  💰 Wallet 2 │    │  💰 Wallet 3 │
+│  (Primary)   │    │  (QA Maker)  │    │  (QA Taker)  │
+└─────────────┘    └─────────────┘    └─────────────┘
+       │                   │                   │
+       │                   │                   │
+       ▼                   ▼                   ▼
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│ 🎯 Trader 1  │    │ 🎯 Trader 2  │    │ 🎯 Trader 3  │
+│ Thread      │    │ Thread      │    │ Thread      │
+└─────────────┘    └─────────────┘    └─────────────┘
+       │                   │                   │
+       │                   │                   │
+       ▼                   ▼                   ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    🧪 Injective Testnet                        │
+│                                                                 │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
+│  │ INJ/USDT    │  │ stINJ/INJ   │  │ INJ/USDT-   │            │
+│  │ Market      │  │ Market      │  │ PERP Market │            │
+│  └─────────────┘  └─────────────┘  └─────────────┘            │
+│                                                                 │
+│  Each wallet places orders on ALL markets simultaneously       │
+│  creating a rich, natural-looking orderbook                    │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### 🔄 Trading Cycle
 1. **📊 Price Check** - Bot checks testnet vs mainnet prices
@@ -305,13 +591,49 @@ For issues, questions, or contributions:
 
 > *"The transaction hash logging is so clean, I can track every trade"* - OCD Trader
 
+## 📚 Quick Reference
+
+### 🚀 Essential Commands
+```bash
+# Start web dashboard
+cd web && python app.py
+
+# Start bot directly
+python scripts/multi_wallet_trader.py
+
+# Cancel all orders
+python scripts/batch_cancel_orders.py
+
+# Compare market data
+python utils/market_comparison_unified.py --compare-all
+```
+
+### 🌐 Web Dashboard URLs
+- **Main Dashboard**: `http://localhost:8000`
+- **API Status**: `http://localhost:8000/api/status`
+- **Bot Control**: `http://localhost:8000/api/control`
+- **WebSocket**: `ws://localhost:8000/ws`
+
+### 📁 Key Files
+- **Bot Script**: `scripts/multi_wallet_trader.py`
+- **Web App**: `web/app.py`
+- **Configuration**: `config/markets_config.json`
+- **Environment**: `.env`
+- **Logs**: `logs/trading.log`
+
+### 🎯 Network Information
+- **Trading Network**: Injective Testnet
+- **Price Reference**: Injective Mainnet
+- **Web Interface**: Localhost (Port 8000)
+- **WebSocket**: Real-time updates
+
 ---
 
 ## 🏆 Final Words
 
 **Built with ❤️ for the Injective ecosystem**
 
-*Remember: In crypto, we don't just HODL, we BUILD! This bot is your ticket to the moon. Use it wisely, trade responsibly, and may your profits be ever in your favor.* 🚀🌙
+*The QA Injective MM Bot provides professional-grade market making capabilities with a modern web interface. Use it wisely, trade responsibly, and may your profits be ever in your favor.* 🚀🌙
 
 **GM! LFG! WAGMI!** 💎🙌
 

@@ -905,7 +905,7 @@ class WalletTrader:
                     #
                     # TO MODIFY THE THRESHOLD: Change the number '5' below to your desired percentage
                     # ============================================================================
-                    if price_diff_percent > 2:  # ← CHANGE THIS NUMBER TO ADJUST THRESHOLD
+                    if price_diff_percent > 0.8:  # ← CHANGE THIS NUMBER TO ADJUST THRESHOLD
                         # Create rich orderbook with multiple smaller orders
                         await self.place_rich_orderbook(testnet_market_id, testnet_price, mainnet_price, market_symbol)
                     else:

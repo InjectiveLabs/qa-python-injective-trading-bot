@@ -69,7 +69,11 @@ from fastapi.responses import FileResponse
 @app.get("/static/{file_path:path}")
 async def static_files(file_path: str):
     """Serve static files with no-cache headers"""
-    response = FileResponse(f"static/{file_path}")
+    # Get the directory where this script is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    static_file_path = os.path.join(script_dir, "static", file_path)
+    
+    response = FileResponse(static_file_path)
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
@@ -110,7 +114,10 @@ def load_cached_config():
             enabled_wallets = [w for w in wallets_config['wallets'] if w.get('enabled', False)]
             
             # Load market configuration
-            with open('../config/markets_config.json', 'r') as f:
+            # Get the project root directory (parent of web directory)
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            markets_config_path = os.path.join(project_root, 'config', 'markets_config.json')
+            with open(markets_config_path, 'r') as f:
                 markets_config = json.load(f)
             enabled_markets = [m for m in markets_config['markets'].values() if m.get('enabled', False)]
             
@@ -144,7 +151,11 @@ def force_refresh_config():
 @app.get("/")
 async def get_dashboard():
     """Serve the main dashboard page"""
-    with open("static/index.html", "r") as f:
+    # Get the directory where this script is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    static_file_path = os.path.join(script_dir, "static", "index.html")
+    
+    with open(static_file_path, "r") as f:
         response = HTMLResponse(f.read())
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
@@ -259,7 +270,9 @@ async def get_balances():
 async def get_full_logs():
     """Get the full trading log file"""
     try:
-        log_file = Path("../logs/trading.log")
+        # Get the project root directory (parent of web directory)
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        log_file = Path(os.path.join(project_root, "logs", "trading.log"))
         if not log_file.exists():
             return {"error": "Log file not found"}
         
@@ -464,7 +477,9 @@ async def broadcast_status_update():
 def get_recent_logs(count: int = 20):
     """Get recent log entries from trading.log"""
     try:
-        log_file = Path("../logs/trading.log")
+        # Get the project root directory (parent of web directory)
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        log_file = Path(os.path.join(project_root, "logs", "trading.log"))
         if not log_file.exists():
             return []
         

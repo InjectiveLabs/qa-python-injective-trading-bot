@@ -46,6 +46,9 @@ class TradingBotDashboard {
         
         // Balance refresh button
         document.getElementById('refresh-balances').addEventListener('click', () => this.refreshBalances());
+        
+        // Orders refresh button
+        document.getElementById('refresh-orders').addEventListener('click', () => this.refreshOrders());
     }
 
     async loadInitialData() {
@@ -54,8 +57,9 @@ class TradingBotDashboard {
             const data = await response.json();
             this.updateUI(data);
             
-            // Load balance data
+            // Load balance and orders data
             await this.loadBalances();
+            await this.refreshOrders();
         } catch (error) {
             console.error('Failed to load initial data:', error);
             this.showError('Failed to load dashboard data');
@@ -613,6 +617,241 @@ class TradingBotDashboard {
         } catch (error) {
             console.error('Failed to refresh full logs:', error);
             document.getElementById('log-content').textContent = 'Error loading logs: ' + error.message;
+        }
+    }
+
+    // Open Orders Methods
+    async refreshOrders() {
+        const refreshText = document.getElementById('orders-refresh-text');
+        refreshText.textContent = 'Refreshing...';
+        
+        try {
+            const response = await fetch('/api/open-orders');
+            const data = await response.json();
+            this.updateOrders(data);
+        } catch (error) {
+            console.error('Failed to refresh orders:', error);
+            this.showError('Failed to refresh orders');
+        } finally {
+            refreshText.textContent = 'Refresh';
+        }
+    }
+
+    updateOrders(data) {
+        const ordersContainer = document.getElementById('orders-container');
+        const ordersTotalBadge = document.getElementById('orders-total-badge');
+        
+        if (data.error) {
+            ordersContainer.innerHTML = `
+                <div class="text-center text-red-400 py-4">
+                    <div class="text-xl mb-2">❌</div>
+                    <div class="font-medium">Error loading orders</div>
+                    <div class="text-sm text-gray-500 mt-1">${data.error}</div>
+                </div>
+            `;
+            ordersTotalBadge.textContent = '0';
+            return;
+        }
+
+        const totalOrders = data.total_orders || 0;
+        ordersTotalBadge.textContent = totalOrders;
+
+        if (totalOrders === 0) {
+            ordersContainer.innerHTML = `
+                <div class="text-center text-gray-500 py-8">
+                    <div class="text-2xl mb-2">📊</div>
+                    <div class="font-medium">No open orders</div>
+                    <div class="text-sm text-gray-400 mt-1">All wallets are clean</div>
+                </div>
+            `;
+            return;
+        }
+
+        // Group orders by wallet
+        const walletSummaries = [];
+        Object.entries(data.wallets || {}).forEach(([walletId, walletData]) => {
+            if (walletData.total_orders > 0) {
+                const marketSummaries = [];
+                let walletTotalOrders = 0;
+                let walletTotalValue = 0;
+
+                Object.entries(walletData.markets || {}).forEach(([marketId, marketData]) => {
+                    const spotOrders = marketData.spot_orders || [];
+                    const derivativeOrders = marketData.derivative_orders || [];
+                    const allMarketOrders = [...spotOrders, ...derivativeOrders];
+                    
+                    if (allMarketOrders.length > 0) {
+                        // Calculate market statistics
+                        const marketTotalOrders = allMarketOrders.length;
+                        const marketTotalQuantity = allMarketOrders.reduce((sum, order) => sum + parseFloat(order.quantity || 0), 0);
+                        const marketAvgPrice = allMarketOrders.reduce((sum, order) => sum + parseFloat(order.price || 0), 0) / marketTotalOrders;
+                        const marketTotalValue = marketTotalQuantity * marketAvgPrice;
+                        
+                        // Count by order type
+                        const spotCount = spotOrders.length;
+                        const derivativeCount = derivativeOrders.length;
+                        
+                        // Count by side
+                        const buyOrders = allMarketOrders.filter(order => order.orderSide === 'buy').length;
+                        const sellOrders = allMarketOrders.filter(order => order.orderSide === 'sell').length;
+                        
+                        // Count by state
+                        const openOrders = allMarketOrders.filter(order => order.state === 'booked').length;
+                        const partialOrders = allMarketOrders.filter(order => order.state === 'partial_filled').length;
+                        const activeOrders = allMarketOrders.filter(order => order.state === 'active').length;
+
+                        marketSummaries.push({
+                            marketId,
+                            totalOrders: marketTotalOrders,
+                            spotCount,
+                            derivativeCount,
+                            buyOrders,
+                            sellOrders,
+                            openOrders,
+                            partialOrders,
+                            activeOrders,
+                            avgPrice: marketAvgPrice,
+                            totalQuantity: marketTotalQuantity,
+                            totalValue: marketTotalValue,
+                            orders: allMarketOrders
+                        });
+
+                        walletTotalOrders += marketTotalOrders;
+                        walletTotalValue += marketTotalValue;
+                    }
+                });
+
+                if (marketSummaries.length > 0) {
+                    walletSummaries.push({
+                        walletId,
+                        walletName: walletData.name || walletId,
+                        totalOrders: walletTotalOrders,
+                        totalValue: walletTotalValue,
+                        markets: marketSummaries
+                    });
+                }
+            }
+        });
+
+        // Sort wallets by total orders (descending)
+        walletSummaries.sort((a, b) => b.totalOrders - a.totalOrders);
+
+        const walletCardsHTML = walletSummaries.map(wallet => `
+            <div class="bg-gray-800/50 rounded-lg border border-gray-700 mb-4">
+                <div class="p-4 border-b border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-lg font-semibold text-white">${wallet.walletName}</h4>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-sm text-gray-400">Total Orders:</span>
+                            <span class="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">${wallet.totalOrders}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${wallet.markets.map(market => `
+                            <div class="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h5 class="font-medium text-blue-400">${market.marketId}</h5>
+                                    <span class="bg-orange-600 text-white px-2 py-1 rounded text-xs">${market.totalOrders} orders</span>
+                                </div>
+                                
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Type:</span>
+                                        <div class="flex space-x-1">
+                                            ${market.spotCount > 0 ? `<span class="bg-green-900 text-green-300 px-2 py-1 rounded text-xs">${market.spotCount} SPOT</span>` : ''}
+                                            ${market.derivativeCount > 0 ? `<span class="bg-purple-900 text-purple-300 px-2 py-1 rounded text-xs">${market.derivativeCount} DERIV</span>` : ''}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Side:</span>
+                                        <div class="flex space-x-1">
+                                            ${market.buyOrders > 0 ? `<span class="bg-green-600 text-white px-2 py-1 rounded text-xs">${market.buyOrders} BUY</span>` : ''}
+                                            ${market.sellOrders > 0 ? `<span class="bg-red-600 text-white px-2 py-1 rounded text-xs">${market.sellOrders} SELL</span>` : ''}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">State:</span>
+                                        <div class="flex space-x-1">
+                                            ${market.openOrders > 0 ? `<span class="bg-blue-600 text-white px-2 py-1 rounded text-xs">${market.openOrders} open</span>` : ''}
+                                            ${market.partialOrders > 0 ? `<span class="bg-orange-600 text-white px-2 py-1 rounded text-xs">${market.partialOrders} partial</span>` : ''}
+                                            ${market.activeOrders > 0 ? `<span class="bg-green-600 text-white px-2 py-1 rounded text-xs">${market.activeOrders} active</span>` : ''}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Avg Price:</span>
+                                        <span class="text-yellow-400 font-mono">${this.formatPrice(market.avgPrice)}</span>
+                                    </div>
+                                    
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Total Qty:</span>
+                                        <span class="text-cyan-400 font-mono">${this.formatQuantity(market.totalQuantity)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        ordersContainer.innerHTML = `
+            <div class="space-y-4">
+                ${walletCardsHTML}
+            </div>
+            <div class="mt-4 text-xs text-gray-500 text-center">
+                Showing ${totalOrders} orders across ${walletSummaries.length} wallets
+            </div>
+        `;
+    }
+
+    formatPrice(price) {
+        if (!price) return 'N/A';
+        const num = parseFloat(price);
+        
+        // For very small prices (likely in smallest unit), convert to readable format
+        if (num < 0.000001) {
+            // Convert to a more readable format by multiplying by 1e12
+            const readablePrice = num * 1e12;
+            return readablePrice.toFixed(3);
+        } else if (num < 0.01) {
+            return num.toFixed(8);
+        } else if (num < 1) {
+            return num.toFixed(6);
+        } else {
+            return num.toFixed(4);
+        }
+    }
+
+    formatQuantity(quantity) {
+        if (!quantity) return 'N/A';
+        const num = parseFloat(quantity);
+        
+        // For very large quantities (likely in smallest unit), convert to readable format
+        if (num >= 1e18) {
+            // Convert from wei/smallest unit to tokens (divide by 1e18)
+            const readableQuantity = num / 1e18;
+            if (readableQuantity >= 1000000) {
+                return (readableQuantity / 1000000).toFixed(1) + 'M';
+            } else if (readableQuantity >= 1000) {
+                return (readableQuantity / 1000).toFixed(1) + 'K';
+            } else {
+                return readableQuantity.toFixed(0);
+            }
+        } else if (num >= 1000000000000) {
+            return (num / 1000000000000).toFixed(1) + 'T';
+        } else if (num >= 1000000000) {
+            return (num / 1000000000).toFixed(1) + 'B';
+        } else if (num >= 1000000) {
+            return (num / 1000000).toFixed(1) + 'M';
+        } else if (num >= 1000) {
+            return (num / 1000).toFixed(1) + 'K';
+        } else {
+            return num.toFixed(0);
         }
     }
 

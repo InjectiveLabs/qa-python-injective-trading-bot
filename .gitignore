@@ -139,6 +139,13 @@ trading_data/
 backtest_results/
 screenshots/
 
+# Reports and analysis files
+reports/
+# Note: Keeping market data files as they are needed for analysis
+# data/*_market_data.json  # Commented out - these are important data files
+data/*_comparison_report.txt
+data/*_report.txt
+
 # Environment and configuration files
 .env
 .env.local

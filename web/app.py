@@ -266,6 +266,66 @@ async def get_balances():
     except Exception as e:
         return {"error": str(e)}
 
+@app.get("/api/open-orders")
+async def get_open_orders():
+    """Get open orders count for each wallet"""
+    try:
+        # Import the check open orders utility
+        from utils.check_open_orders import get_open_orders_data
+        
+        # Get open orders data
+        orders_data = await get_open_orders_data()
+        
+        if "error" in orders_data:
+            return orders_data
+        
+        # Format for frontend
+        wallet_orders = {}
+        total_orders = 0
+        
+        for wallet_info in orders_data.get('wallets', []):
+            wallet_id = wallet_info.get('wallet_id')
+            wallet_name = wallet_info.get('wallet_name')
+            markets = wallet_info.get('markets', [])
+            
+            wallet_total = 0
+            market_orders = {}
+            
+            for market_info in markets:
+                market_id = market_info.get('market_id')
+                spot_orders = market_info.get('spot_orders', [])
+                derivative_orders = market_info.get('derivative_orders', [])
+                
+                market_total = len(spot_orders) + len(derivative_orders)
+                wallet_total += market_total
+                
+                # Always include market data with actual order details
+                market_orders[market_id] = {
+                    'spot': len(spot_orders),
+                    'derivative': len(derivative_orders),
+                    'total': market_total,
+                    'spot_orders': spot_orders,  # Include actual order data
+                    'derivative_orders': derivative_orders  # Include actual order data
+                }
+            
+            wallet_orders[wallet_id] = {
+                'name': wallet_name,
+                'total_orders': wallet_total,
+                'markets': market_orders,
+                'last_updated': datetime.now().isoformat()
+            }
+            
+            total_orders += wallet_total
+        
+        return {
+            "wallets": wallet_orders,
+            "total_orders": total_orders,
+            "last_updated": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.get("/api/logs/full")
 async def get_full_logs():
     """Get the full trading log file"""

@@ -95,9 +95,18 @@ class SingleWalletTrader:
             'successful_orders': 0,
             'failed_orders': 0,
             'total_transactions': 0,
+            'sequence_errors': 0,
+            'sequence_recoveries': 0,
             'markets': {}
         }
         self.start_time = time.time()
+        
+        # Professional sequence management
+        self.sequence_lock = asyncio.Lock()
+        self.consecutive_sequence_errors = 0
+        self.max_sequence_errors = 5  # Circuit breaker threshold
+        self.last_sequence_refresh = 0
+        self.sequence_refresh_interval = 30  # Proactive refresh every 30s
         
     def load_config(self) -> Dict:
         """Load configuration from file"""
@@ -266,164 +275,235 @@ class SingleWalletTrader:
             # Get mainnet price to determine direction
             mainnet_price = await self.get_mainnet_derivative_price(market_symbol, market_config.get("mainnet_market_id"))
             
-            # Determine if we need to push price UP or DOWN
+            # Determine strategy based on price gap
             if mainnet_price > 0:
                 price_gap_percent = abs(mainnet_price - price) / mainnet_price * 100
                 
-                if price < mainnet_price:
-                    # Testnet price is TOO LOW - create AGGRESSIVE BUY orders to push UP
-                    log(f"🔺 Testnet below mainnet - creating aggressive BUY orders to push price UP", self.wallet_id)
-                    for i in range(orders_per_market):
-                        # Buy orders ABOVE current price to push market up
-                        buy_price = Decimal(str(price * (1 + spread * 0.5 * (i + 1))))  # Above current price
-                        buy_margin = buy_price * order_size * margin_ratio * Decimal("2")  # 2x margin for impact
-                        buy_order = self.composer.derivative_order(
-                            market_id=market_id,
-                            subaccount_id=self.address.get_subaccount_id(0),
-                            fee_recipient=self.address.to_acc_bech32(),
-                            price=buy_price,
-                            quantity=order_size * Decimal("2"),  # 2x size for impact
-                            margin=buy_margin,
-                            order_type="BUY",
-                            cid=None
-                        )
-                        orders.append(buy_order)
-                        
-                        # Minimal sell orders just for support
-                        sell_price = Decimal(str(price * (1 + spread * (i + 2))))
-                        sell_margin = sell_price * order_size * margin_ratio * Decimal("0.5")
-                        sell_order = self.composer.derivative_order(
-                            market_id=market_id,
-                            subaccount_id=self.address.get_subaccount_id(0),
-                            fee_recipient=self.address.to_acc_bech32(),
-                            price=sell_price,
-                            quantity=order_size * Decimal("0.5"),  # Smaller sells
-                            margin=sell_margin,
-                            order_type="SELL",
-                            cid=None
-                        )
-                        orders.append(sell_order)
-                        
-                elif price > mainnet_price:
-                    # Testnet price is TOO HIGH - create AGGRESSIVE SELL orders to push DOWN
-                    log(f"🔻 Testnet above mainnet - creating aggressive SELL orders to push price DOWN", self.wallet_id)
-                    for i in range(orders_per_market):
-                        # Sell orders BELOW current price to push market down
-                        sell_price = Decimal(str(price * (1 - spread * 0.5 * (i + 1))))  # Below current price
-                        sell_margin = sell_price * order_size * margin_ratio * Decimal("2")  # 2x margin
-                        sell_order = self.composer.derivative_order(
-                            market_id=market_id,
-                            subaccount_id=self.address.get_subaccount_id(0),
-                            fee_recipient=self.address.to_acc_bech32(),
-                            price=sell_price,
-                            quantity=order_size * Decimal("2"),  # 2x size for impact
-                            margin=sell_margin,
-                            order_type="SELL",
-                            cid=None
-                        )
-                        orders.append(sell_order)
-                        
-                        # Minimal buy orders just for support
-                        buy_price = Decimal(str(price * (1 - spread * (i + 2))))
-                        buy_margin = buy_price * order_size * margin_ratio * Decimal("0.5")
-                        buy_order = self.composer.derivative_order(
-                            market_id=market_id,
-                            subaccount_id=self.address.get_subaccount_id(0),
-                            fee_recipient=self.address.to_acc_bech32(),
-                            price=buy_price,
-                            quantity=order_size * Decimal("0.5"),  # Smaller buys
-                            margin=buy_margin,
-                            order_type="BUY",
-                            cid=None
-                        )
-                        orders.append(buy_order)
-                else:
-                    # Prices aligned - balanced liquidity
-                    log(f"✅ Prices aligned - creating balanced liquidity", self.wallet_id)
-                    for i in range(orders_per_market):
-                        buy_price = Decimal(str(price * (1 - spread * (i + 1))))
-                        buy_margin = buy_price * order_size * margin_ratio
-                        orders.append(self.composer.derivative_order(
-                            market_id=market_id, subaccount_id=self.address.get_subaccount_id(0),
-                            fee_recipient=self.address.to_acc_bech32(),
-                            price=buy_price, quantity=order_size, margin=buy_margin,
-                            order_type="BUY", cid=None
-                        ))
-                        
-                        sell_price = Decimal(str(price * (1 + spread * (i + 1))))
-                        sell_margin = sell_price * order_size * margin_ratio
-                        orders.append(self.composer.derivative_order(
-                            market_id=market_id, subaccount_id=self.address.get_subaccount_id(0),
-                            fee_recipient=self.address.to_acc_bech32(),
-                            price=sell_price, quantity=order_size, margin=sell_margin,
-                            order_type="SELL", cid=None
-                        ))
+                # ALWAYS CREATE BEAUTIFUL ORDERBOOK AT MAINNET PRICE
+                # Ignore current testnet orderbook - we're making the market!
+                log(f"✨ Creating beautiful orderbook at mainnet price ${mainnet_price:.4f} (current testnet: ${price:.4f}, gap: {price_gap_percent:.2f}%)", self.wallet_id)
+                return await self.create_beautiful_orderbook(market_id, market_symbol, market_config, price, mainnet_price)
             else:
-                # Can't get mainnet price - use balanced orders as fallback
-                log(f"⚠️ No mainnet price - using balanced orders", self.wallet_id)
-                for i in range(orders_per_market):
-                    buy_price = Decimal(str(price * (1 - spread * (i + 1))))
-                    buy_margin = buy_price * order_size * margin_ratio
-                    orders.append(self.composer.derivative_order(
-                        market_id=market_id, subaccount_id=self.address.get_subaccount_id(0),
-                        fee_recipient=self.address.to_acc_bech32(),
-                        price=buy_price, quantity=order_size, margin=buy_margin,
-                        order_type="BUY", cid=None
-                    ))
-                    
-                    sell_price = Decimal(str(price * (1 + spread * (i + 1))))
-                    sell_margin = sell_price * order_size * margin_ratio
-                    orders.append(self.composer.derivative_order(
-                        market_id=market_id, subaccount_id=self.address.get_subaccount_id(0),
-                        fee_recipient=self.address.to_acc_bech32(),
-                        price=sell_price, quantity=order_size, margin=sell_margin,
-                        order_type="SELL", cid=None
-                    ))
+                # Can't get mainnet price - use testnet price as fallback
+                log(f"⚠️ No mainnet price available - creating orderbook at testnet price ${price:.4f}", self.wallet_id)
+                return await self.create_beautiful_orderbook(market_id, market_symbol, market_config, price, price)
                 
         except Exception as e:
             log(f"❌ Error creating derivative orders for {market_symbol}: {e}", self.wallet_id)
             
         return orders
     
-    async def send_batch_orders(self, spot_orders: list, derivative_orders: list):
-        """Send derivative orders ONLY in a single batch transaction"""
+    async def create_beautiful_orderbook(self, market_id: str, market_symbol: str, market_config: Dict, 
+                                         testnet_price: float, mainnet_price: float) -> list:
+        """
+        Create a beautiful, natural-looking orderbook with deep liquidity
+        Used when prices are aligned (< 2% difference)
+        """
+        orders = []
         try:
-            # Create batch update message - DERIVATIVES ONLY
-            msg = self.composer.msg_batch_update_orders(
-                sender=self.address.to_acc_bech32(),
-                spot_orders_to_create=[],  # No spot orders
-                derivative_orders_to_create=derivative_orders,
-                derivative_orders_to_cancel=[],
-                spot_orders_to_cancel=[]
-            )
+            order_size = Decimal(str(market_config["order_size"]))
+            margin_ratio = Decimal("0.1")
             
-            # Broadcast batch update
-            response = await self.broadcaster.broadcast([msg])
-            tx_hash = (response.get('txhash') or 
-                      response.get('txResponse', {}).get('txhash') or
-                      response.get('tx_response', {}).get('txhash') or
-                      'unknown')
+            # Use mainnet price as the center for orderbook
+            center_price = mainnet_price
             
-            # Refresh sequence after successful transaction to prevent drift
-            if tx_hash != 'unknown':
-                await self.refresh_sequence()
+            # Create multi-tiered orderbook with natural distribution
+            liquidity_tiers = [
+                # (spread_percent, num_orders, size_multiplier, priority)
+                (0.001, 3, 1.5, "immediate"),    # Tier 1: Micro spread (0.1%) - tight liquidity
+                (0.005, 3, 1.2, "immediate"),    # Tier 2: Tight spread (0.5%)
+                (0.01, 2, 1.0, "immediate"),     # Tier 3: Normal spread (1%)
+                (0.02, 2, 0.8, "secondary"),     # Tier 4: Medium spread (2%)
+                (0.03, 2, 0.6, "secondary"),     # Tier 5: Wide spread (3%)
+                (0.05, 2, 0.5, "tertiary"),      # Tier 6: Very wide (5%)
+            ]
             
-            # Update statistics
-            total_orders = len(spot_orders) + len(derivative_orders)
-            if tx_hash != 'unknown':
-                self.trading_stats['total_orders'] += total_orders
-                self.trading_stats['successful_orders'] += total_orders
-                self.trading_stats['total_transactions'] += 1
-                
-                log(f"✅ Placed {total_orders} orders ({len(spot_orders)} spot, {len(derivative_orders)} derivative) | TX: {tx_hash}", self.wallet_id)
-            else:
-                self.trading_stats['failed_orders'] += total_orders
-                log(f"❌ Failed to place {total_orders} orders: {response}", self.wallet_id)
-                
+            for spread_pct, num_orders, size_mult, priority in liquidity_tiers:
+                for i in range(num_orders):
+                    # Add randomness for natural look
+                    spread_variation = random.uniform(0.9, 1.1)
+                    actual_spread = spread_pct * spread_variation
+                    size_variation = random.uniform(0.85, 1.15)
+                    actual_size = order_size * Decimal(str(size_mult * size_variation))
+                    # Round quantity to avoid decimal precision issues
+                    actual_size = actual_size.quantize(Decimal('0.001'))
+                    
+                    # Calculate buy and sell prices
+                    offset = actual_spread * (i + 1)
+                    buy_price = Decimal(str(center_price * (1 - offset)))
+                    sell_price = Decimal(str(center_price * (1 + offset)))
+                    
+                    # Smart rounding based on price level for natural look
+                    if buy_price > 10:
+                        buy_price = buy_price.quantize(Decimal('0.0001'))
+                        sell_price = sell_price.quantize(Decimal('0.0001'))
+                    else:
+                        buy_price = buy_price.quantize(Decimal('0.00001'))
+                        sell_price = sell_price.quantize(Decimal('0.00001'))
+                    
+                    # Create buy order
+                    buy_margin = buy_price * actual_size * margin_ratio
+                    # Round margin to avoid decimal precision issues with blockchain
+                    buy_margin = buy_margin.quantize(Decimal('0.01'))
+                    buy_order = self.composer.derivative_order(
+                        market_id=market_id,
+                        subaccount_id=self.address.get_subaccount_id(0),
+                        fee_recipient=self.address.to_acc_bech32(),
+                        price=buy_price,
+                        quantity=actual_size,
+                        margin=buy_margin,
+                        order_type="BUY",
+                        cid=None
+                    )
+                    orders.append(buy_order)
+                    
+                    # Create sell order
+                    sell_margin = sell_price * actual_size * margin_ratio
+                    # Round margin to avoid decimal precision issues with blockchain
+                    sell_margin = sell_margin.quantize(Decimal('0.01'))
+                    sell_order = self.composer.derivative_order(
+                        market_id=market_id,
+                        subaccount_id=self.address.get_subaccount_id(0),
+                        fee_recipient=self.address.to_acc_bech32(),
+                        price=sell_price,
+                        quantity=actual_size,
+                        margin=sell_margin,
+                        order_type="SELL",
+                        cid=None
+                    )
+                    orders.append(sell_order)
+            
+            log(f"📖 Created beautiful orderbook with {len(orders)} orders across {len(liquidity_tiers)} tiers", self.wallet_id)
+            
         except Exception as e:
-            total_orders = len(spot_orders) + len(derivative_orders)
-            self.trading_stats['failed_orders'] += total_orders
-            log(f"❌ Error sending batch orders: {e}", self.wallet_id)
+            log(f"❌ Error creating beautiful orderbook for {market_symbol}: {e}", self.wallet_id)
+            
+        return orders
+    
+    async def send_batch_orders(self, spot_orders: list, derivative_orders: list):
+        """
+        Professional batch order sender with intelligent sequence recovery
+        
+        Features:
+        - Automatic retry with exponential backoff
+        - Intelligent sequence error detection and recovery
+        - Circuit breaker for persistent failures
+        - Proactive sequence refresh
+        """
+        total_orders = len(spot_orders) + len(derivative_orders)
+        max_retries = 3
+        base_delay = 0.5
+        
+        # Circuit breaker: If too many consecutive sequence errors, pause trading
+        if self.consecutive_sequence_errors >= self.max_sequence_errors:
+            log(f"🛑 Circuit breaker activated! Too many sequence errors ({self.consecutive_sequence_errors}). Cooling down...", self.wallet_id)
+            await asyncio.sleep(5.0)
+            # Force sequence refresh to recover
+            await self.refresh_sequence(force=True)
+            self.consecutive_sequence_errors = 0
+            log(f"🔄 Circuit breaker reset, resuming trading", self.wallet_id)
+        
+        for attempt in range(max_retries):
+            try:
+                # Proactive sequence check before broadcasting
+                if attempt == 0:
+                    await self.proactive_sequence_check()
+                
+                # Use sequence lock to prevent concurrent broadcasts
+                async with self.sequence_lock:
+                    # Create batch update message - DERIVATIVES ONLY
+                    msg = self.composer.msg_batch_update_orders(
+                        sender=self.address.to_acc_bech32(),
+                        spot_orders_to_create=[],  # No spot orders
+                        derivative_orders_to_create=derivative_orders,
+                        derivative_orders_to_cancel=[],
+                        spot_orders_to_cancel=[]
+                    )
+                    
+                    # Broadcast batch update
+                    response = await self.broadcaster.broadcast([msg])
+                    
+                    # Extract TX hash and check for errors
+                    tx_hash = (response.get('txhash') or 
+                              response.get('txResponse', {}).get('txhash') or
+                              response.get('tx_response', {}).get('txhash') or
+                              'unknown')
+                    
+                    # Check for broadcast errors in response
+                    tx_response = response.get('txResponse') or response.get('tx_response') or {}
+                    code = tx_response.get('code', 0)
+                    raw_log = tx_response.get('rawLog') or tx_response.get('raw_log', '')
+                
+                # Check if transaction was successful
+                if tx_hash != 'unknown' and code == 0:
+                    self.trading_stats['total_orders'] += total_orders
+                    self.trading_stats['successful_orders'] += total_orders
+                    self.trading_stats['total_transactions'] += 1
+                    self.consecutive_sequence_errors = 0  # Reset error counter
+                    
+                    log(f"✅ Placed {total_orders} orders ({len(spot_orders)} spot, {len(derivative_orders)} derivative) | TX: {tx_hash}", self.wallet_id)
+                    
+                    # Refresh sequence after success to stay in sync
+                    await self.refresh_sequence()
+                    return  # Success, exit function
+                    
+                elif code != 0:
+                    # Transaction failed with error code
+                    log(f"❌ Transaction failed (code {code}): {raw_log}", self.wallet_id)
+                    self.trading_stats['failed_orders'] += total_orders
+                    # Refresh sequence and retry
+                    await self.refresh_sequence(force=True)
+                    
+                else:
+                    log(f"❌ Failed to place {total_orders} orders: {response}", self.wallet_id)
+                    self.trading_stats['failed_orders'] += total_orders
+                    # Refresh sequence and retry
+                    await self.refresh_sequence(force=True)
+                    
+            except Exception as e:
+                error_str = str(e).lower()
+                
+                # Check if this is a sequence mismatch error
+                if "sequence mismatch" in error_str or "incorrect account sequence" in error_str:
+                    self.consecutive_sequence_errors += 1
+                    self.trading_stats['sequence_errors'] += 1
+                    
+                    # Extract expected sequence from error if possible
+                    expected_seq = self.extract_expected_sequence(str(e))
+                    if expected_seq is not None:
+                        log(f"🔧 Sequence mismatch detected! Blockchain expects: {expected_seq}, We had: {self.sequence}", self.wallet_id)
+                        self.trading_stats['sequence_recoveries'] += 1
+                    
+                    log(f"⚠️ Sequence error (attempt {attempt + 1}/{max_retries})", self.wallet_id)
+                    
+                    # CRITICAL: Recreate broadcaster to reset its internal sequence
+                    # Just refreshing sequence isn't enough - broadcaster has its own counter!
+                    await self.recreate_broadcaster()
+                    
+                    # Exponential backoff with jitter
+                    delay = base_delay * (2 ** attempt) + random.uniform(0, 0.5)
+                    await asyncio.sleep(delay)
+                    
+                    # Retry
+                    continue
+                    
+                else:
+                    # Non-sequence error
+                    log(f"❌ Error sending batch orders (attempt {attempt + 1}/{max_retries}): {e}", self.wallet_id)
+                    self.trading_stats['failed_orders'] += total_orders
+                    
+                    # Refresh sequence anyway (defensive)
+                    await self.refresh_sequence(force=True)
+                    
+                    # Exponential backoff
+                    if attempt < max_retries - 1:
+                        delay = base_delay * (2 ** attempt)
+                        await asyncio.sleep(delay)
+                        continue
+        
+        # All retries exhausted
+        log(f"❌ Failed to place orders after {max_retries} attempts", self.wallet_id)
+        self.trading_stats['failed_orders'] += total_orders
     
     async def trade_market(self, market_symbol: str):
         """Trade on a specific market (spot or derivative)"""
@@ -538,22 +618,102 @@ class SingleWalletTrader:
         except Exception as e:
             log(f"❌ Error placing derivative orders on {market_symbol}: {e}", self.wallet_id)
     
-    async def refresh_sequence(self):
-        """Refresh sequence number from blockchain"""
+    async def recreate_broadcaster(self):
+        """
+        Recreate broadcaster to reset its internal sequence state
+        This is the nuclear option for sequence recovery
+        """
         try:
+            log(f"🔄 Recreating broadcaster to reset sequence state...", self.wallet_id)
+            
+            # Fetch fresh account info
             await self.async_client.fetch_account(self.address.to_acc_bech32())
-            old_sequence = self.sequence
             self.sequence = self.async_client.sequence
             self.account_number = self.async_client.number
             
-            if old_sequence != self.sequence:
-                log(f"🔄 Sequence updated: {old_sequence} → {self.sequence}", self.wallet_id)
-                
-            # Add small delay to ensure sequence is properly updated
-            await asyncio.sleep(1.0)
+            # Recreate broadcaster with fresh sequence
+            # Match the initialization logic - pass private_key string directly
+            gas_price = await self.async_client.current_chain_gas_price()
+            gas_price = int(gas_price * 1.3)  # Same gas price boost as initialization
+            
+            self.broadcaster = MsgBroadcasterWithPk.new_using_gas_heuristics(
+                network=self.network,
+                private_key=self.private_key,  # Pass string directly, SDK handles conversion
+                gas_price=gas_price
+            )
+            
+            log(f"✅ Broadcaster recreated with sequence: {self.sequence}", self.wallet_id)
+            
+            # Give blockchain time to sync
+            await asyncio.sleep(2.0)
             
         except Exception as e:
-            log(f"❌ Failed to refresh sequence: {e}", self.wallet_id)
+            log(f"❌ Failed to recreate broadcaster: {e}", self.wallet_id)
+            raise
+    
+    async def refresh_sequence(self, force: bool = False):
+        """
+        Professional sequence refresh with locking and drift detection
+        
+        Args:
+            force: Force refresh even if recently refreshed
+        """
+        async with self.sequence_lock:
+            try:
+                # Check if we need to refresh (throttle unnecessary refreshes)
+                current_time = time.time()
+                time_since_refresh = current_time - self.last_sequence_refresh
+                
+                if not force and time_since_refresh < 2.0:
+                    # Too soon since last refresh, skip
+                    return
+                
+                # Fetch account info from blockchain
+                await self.async_client.fetch_account(self.address.to_acc_bech32())
+                old_sequence = self.sequence
+                self.sequence = self.async_client.sequence
+                self.account_number = self.async_client.number
+                self.last_sequence_refresh = current_time
+                
+                # Detect sequence drift
+                if old_sequence != self.sequence:
+                    drift = abs(self.sequence - old_sequence)
+                    if drift > 1:
+                        log(f"⚠️ Sequence drift detected: {old_sequence} → {self.sequence} (drift: {drift})", self.wallet_id)
+                    else:
+                        log(f"🔄 Sequence updated: {old_sequence} → {self.sequence}", self.wallet_id)
+                
+                # Reset error counter on successful refresh
+                self.consecutive_sequence_errors = 0
+                
+                # Small delay to ensure blockchain sync
+                await asyncio.sleep(0.5)
+                
+            except Exception as e:
+                log(f"❌ Failed to refresh sequence: {e}", self.wallet_id)
+                raise
+    
+    async def proactive_sequence_check(self):
+        """Proactively refresh sequence if enough time has passed"""
+        current_time = time.time()
+        if current_time - self.last_sequence_refresh > self.sequence_refresh_interval:
+            log(f"🔍 Proactive sequence refresh (30s interval)", self.wallet_id)
+            await self.refresh_sequence(force=True)
+    
+    def extract_expected_sequence(self, error_message: str) -> Optional[int]:
+        """Extract expected sequence number from error message"""
+        try:
+            # Parse error like: "expected 4227, got 4228"
+            if "expected" in error_message.lower():
+                parts = error_message.split("expected")
+                if len(parts) > 1:
+                    # Extract number after "expected"
+                    expected_part = parts[1].split(",")[0].strip()
+                    expected_seq = int(''.join(filter(str.isdigit, expected_part)))
+                    return expected_seq
+        except Exception:
+            pass
+        return None
     
     async def get_market_price(self, market_id: str, market_symbol: str = "") -> float:
         """Get current testnet market price using LAST TRADE PRICE (not orderbook mid-price)"""

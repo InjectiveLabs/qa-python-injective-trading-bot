@@ -1,0 +1,86 @@
+{
+  "mode": "single_wallet",
+  "wallets": {
+    "wallet_1": {
+      "markets": ["INJ/USDT", "stINJ/INJ", "INJ/USDT-PERP"],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_2": {
+      "markets": ["INJ/USDT", "stINJ/INJ", "INJ/USDT-PERP"],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_3": {
+      "markets": ["INJ/USDT", "stINJ/INJ", "INJ/USDT-PERP"],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    }
+  },
+  "markets": {
+    "INJ/USDT": {
+      "testnet_market_id": "0x0611780ba69656949525013d947713300f56c37b6175e02f26bffa495c3208fe",
+      "mainnet_market_id": "0xa508cb32923323679f29a032c70342c147c17d0145625922b0ef22e955c844c0",
+      "type": "spot",
+      "spread_percent": 0.5,
+      "order_size": 15,
+      "min_spread": 0.1,
+      "max_spread": 2.0,
+      "price_correction": {
+        "enabled": true,
+        "deviation_threshold": 5.0,
+        "correction_aggressiveness": 0.8,
+        "max_correction_size": 150,
+        "correction_cooldown": 300
+      }
+    },
+    "stINJ/INJ": {
+      "testnet_market_id": "0xf02752c2c87728af7fd10a298a8a645261859eafd0295dcda7e2c5b45c8412cf",
+      "mainnet_market_id": "0xce1829d4942ed939580e72e66fd8be3502396fc840b6d12b2d676bdb86542363",
+      "type": "spot",
+      "spread_percent": 0.3,
+      "order_size": 10,
+      "min_spread": 0.05,
+      "max_spread": 1.5,
+      "price_correction": {
+        "enabled": true,
+        "deviation_threshold": 3.0,
+        "correction_aggressiveness": 0.7,
+        "max_correction_size": 100,
+        "correction_cooldown": 240
+      }
+    },
+    "INJ/USDT-PERP": {
+      "testnet_market_id": "0x17ef48032cb24375ba7c2e39f384e56433bcab20cbee9a7357e4cba2eb00abe6",
+      "mainnet_market_id": "0x9b9980167ecc3645ff1a5517886652d94a0825e54a77d2057cbbe3ebee015963",
+      "type": "derivative",
+      "spread_percent": 0.3,
+      "order_size": 8,
+      "min_spread": 0.05,
+      "max_spread": 1.5,
+      "price_correction": {
+        "enabled": true,
+        "deviation_threshold": 3.0,
+        "correction_aggressiveness": 0.6,
+        "max_correction_size": 80,
+        "correction_cooldown": 180
+      }
+    }
+  },
+  "global": {
+    "rebalance_interval": 30,
+    "price_update_interval": 10,
+    "price_monitoring_interval": 5,
+    "ui_port": 8080,
+    "api_port": 8000
+  }
+}

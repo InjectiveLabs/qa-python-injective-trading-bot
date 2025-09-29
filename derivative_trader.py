@@ -85,9 +85,10 @@ class SingleWalletTrader:
         self.account_number = 0
         
         # Trading state
-        self.active_orders = {}
+        self.active_orders = {}  # market_id -> list of order hashes
         self.last_prices = {}
         self.last_rebalance = 0
+        self.orderbook_built = {}  # market_id -> bool (tracks if initial orderbook is built)
         
         # Trading statistics
         self.trading_stats = {
@@ -279,10 +280,17 @@ class SingleWalletTrader:
             if mainnet_price > 0:
                 price_gap_percent = abs(mainnet_price - price) / mainnet_price * 100
                 
-                # ALWAYS CREATE BEAUTIFUL ORDERBOOK AT MAINNET PRICE
-                # Ignore current testnet orderbook - we're making the market!
-                log(f"✨ Creating beautiful orderbook at mainnet price ${mainnet_price:.4f} (current testnet: ${price:.4f}, gap: {price_gap_percent:.2f}%)", self.wallet_id)
-                return await self.create_beautiful_orderbook(market_id, market_symbol, market_config, price, mainnet_price)
+                # Determine strategy based on price alignment
+                is_aligned = price_gap_percent <= 2.0
+                
+                if is_aligned:
+                    # GRADUAL BUILDING: Prices are close, just add small orders
+                    log(f"🔄 Gradual orderbook building (gap: {price_gap_percent:.2f}%) - adding 2-3 orders per side", self.wallet_id)
+                    return await self.gradual_orderbook_update(market_id, market_symbol, market_config, price, mainnet_price)
+                else:
+                    # LARGE GAP: Create full beautiful orderbook to move market
+                    log(f"✨ Large price gap ({price_gap_percent:.2f}%) - creating full orderbook at mainnet price ${mainnet_price:.4f} (testnet: ${price:.4f})", self.wallet_id)
+                    return await self.create_beautiful_orderbook(market_id, market_symbol, market_config, price, mainnet_price)
             else:
                 # Can't get mainnet price - use testnet price as fallback
                 log(f"⚠️ No mainnet price available - creating orderbook at testnet price ${price:.4f}", self.wallet_id)
@@ -290,6 +298,70 @@ class SingleWalletTrader:
                 
         except Exception as e:
             log(f"❌ Error creating derivative orders for {market_symbol}: {e}", self.wallet_id)
+            
+        return orders
+    
+    async def gradual_orderbook_update(self, market_id: str, market_symbol: str, market_config: Dict,
+                                       testnet_price: float, mainnet_price: float) -> list:
+        """
+        Gradually build orderbook when prices are aligned
+        - Add 2-3 small orders on each side
+        - Cancel 2-3 oldest orders to refresh
+        """
+        orders = []
+        try:
+            order_size = Decimal(str(market_config["order_size"]))
+            margin_ratio = Decimal("0.1")
+            center_price = mainnet_price
+            
+            # Small randomized orders - just 2-3 per side
+            num_orders_per_side = random.randint(2, 3)
+            
+            for i in range(num_orders_per_side):
+                # Random spread between 0.1% and 2%
+                spread = random.uniform(0.001, 0.02)
+                offset = spread * (i + 1)
+                
+                # Randomize size (50%-80% of base size for gradual building)
+                size_mult = random.uniform(0.5, 0.8)
+                actual_size = (order_size * Decimal(str(size_mult))).quantize(Decimal('0.001'))
+                
+                # Buy order
+                buy_price = Decimal(str(center_price * (1 - offset)))
+                buy_price = buy_price.quantize(Decimal('0.0001') if buy_price > 10 else Decimal('0.00001'))
+                buy_margin = (buy_price * actual_size * margin_ratio).quantize(Decimal('0.01'))
+                
+                orders.append(self.composer.derivative_order(
+                    market_id=market_id,
+                    subaccount_id=self.address.get_subaccount_id(0),
+                    fee_recipient=self.address.to_acc_bech32(),
+                    price=buy_price,
+                    quantity=actual_size,
+                    margin=buy_margin,
+                    order_type="BUY",
+                    cid=None
+                ))
+                
+                # Sell order
+                sell_price = Decimal(str(center_price * (1 + offset)))
+                sell_price = sell_price.quantize(Decimal('0.0001') if sell_price > 10 else Decimal('0.00001'))
+                sell_margin = (sell_price * actual_size * margin_ratio).quantize(Decimal('0.01'))
+                
+                orders.append(self.composer.derivative_order(
+                    market_id=market_id,
+                    subaccount_id=self.address.get_subaccount_id(0),
+                    fee_recipient=self.address.to_acc_bech32(),
+                    price=sell_price,
+                    quantity=actual_size,
+                    margin=sell_margin,
+                    order_type="SELL",
+                    cid=None
+                ))
+            
+            log(f"📝 Created {len(orders)} gradual orders ({num_orders_per_side} buys + {num_orders_per_side} sells)", self.wallet_id)
+            
+        except Exception as e:
+            log(f"❌ Error creating gradual orders for {market_symbol}: {e}", self.wallet_id)
             
         return orders
     
@@ -307,73 +379,83 @@ class SingleWalletTrader:
             # Use mainnet price as the center for orderbook
             center_price = mainnet_price
             
-            # Create multi-tiered orderbook with natural distribution
-            liquidity_tiers = [
-                # (spread_percent, num_orders, size_multiplier, priority)
-                (0.001, 3, 1.5, "immediate"),    # Tier 1: Micro spread (0.1%) - tight liquidity
-                (0.005, 3, 1.2, "immediate"),    # Tier 2: Tight spread (0.5%)
-                (0.01, 2, 1.0, "immediate"),     # Tier 3: Normal spread (1%)
-                (0.02, 2, 0.8, "secondary"),     # Tier 4: Medium spread (2%)
-                (0.03, 2, 0.6, "secondary"),     # Tier 5: Wide spread (3%)
-                (0.05, 2, 0.5, "tertiary"),      # Tier 6: Very wide (5%)
-            ]
+            # Create beautiful staircase orderbook with smooth depth
+            # Start tight near center, gradually widen
+            order_levels = []
+            base_spread = 0.0001  # Start at 0.01% from center
             
-            for spread_pct, num_orders, size_mult, priority in liquidity_tiers:
-                for i in range(num_orders):
-                    # Add randomness for natural look
-                    spread_variation = random.uniform(0.9, 1.1)
-                    actual_spread = spread_pct * spread_variation
-                    size_variation = random.uniform(0.85, 1.15)
-                    actual_size = order_size * Decimal(str(size_mult * size_variation))
-                    # Round quantity to avoid decimal precision issues
-                    actual_size = actual_size.quantize(Decimal('0.001'))
-                    
-                    # Calculate buy and sell prices
-                    offset = actual_spread * (i + 1)
-                    buy_price = Decimal(str(center_price * (1 - offset)))
-                    sell_price = Decimal(str(center_price * (1 + offset)))
-                    
-                    # Smart rounding based on price level for natural look
-                    if buy_price > 10:
-                        buy_price = buy_price.quantize(Decimal('0.0001'))
-                        sell_price = sell_price.quantize(Decimal('0.0001'))
-                    else:
-                        buy_price = buy_price.quantize(Decimal('0.00001'))
-                        sell_price = sell_price.quantize(Decimal('0.00001'))
-                    
-                    # Create buy order
-                    buy_margin = buy_price * actual_size * margin_ratio
-                    # Round margin to avoid decimal precision issues with blockchain
-                    buy_margin = buy_margin.quantize(Decimal('0.01'))
-                    buy_order = self.composer.derivative_order(
-                        market_id=market_id,
-                        subaccount_id=self.address.get_subaccount_id(0),
-                        fee_recipient=self.address.to_acc_bech32(),
-                        price=buy_price,
-                        quantity=actual_size,
-                        margin=buy_margin,
-                        order_type="BUY",
-                        cid=None
-                    )
-                    orders.append(buy_order)
-                    
-                    # Create sell order
-                    sell_margin = sell_price * actual_size * margin_ratio
-                    # Round margin to avoid decimal precision issues with blockchain
-                    sell_margin = sell_margin.quantize(Decimal('0.01'))
-                    sell_order = self.composer.derivative_order(
-                        market_id=market_id,
-                        subaccount_id=self.address.get_subaccount_id(0),
-                        fee_recipient=self.address.to_acc_bech32(),
-                        price=sell_price,
-                        quantity=actual_size,
-                        margin=sell_margin,
-                        order_type="SELL",
-                        cid=None
-                    )
-                    orders.append(sell_order)
+            # Create 14 levels on each side with gradually increasing spread
+            for level in range(14):
+                if level < 5:
+                    # Tight levels near center (0.01% - 0.1%)
+                    spread = base_spread * (level + 1) * 2
+                    size_mult = 1.5 - (level * 0.05)  # Gradually decrease size
+                elif level < 10:
+                    # Medium levels (0.1% - 0.5%)
+                    spread = 0.001 + (level - 5) * 0.0008
+                    size_mult = 1.2 - ((level - 5) * 0.08)
+                else:
+                    # Wide levels (0.5% - 2%)
+                    spread = 0.005 + (level - 10) * 0.004
+                    size_mult = 0.8 - ((level - 10) * 0.08)
+                
+                order_levels.append((spread, size_mult))
             
-            log(f"📖 Created beautiful orderbook with {len(orders)} orders across {len(liquidity_tiers)} tiers", self.wallet_id)
+            # Create orders at each level
+            for level_idx, (spread, size_mult) in enumerate(order_levels):
+                # Add slight randomization for natural look
+                spread_jitter = random.uniform(0.95, 1.05)
+                size_jitter = random.uniform(0.9, 1.1)
+                
+                actual_spread = spread * spread_jitter
+                actual_size = order_size * Decimal(str(size_mult * size_jitter))
+                actual_size = actual_size.quantize(Decimal('0.001'))
+                
+                # Calculate prices for this level
+                buy_price = Decimal(str(center_price * (1 - actual_spread)))
+                sell_price = Decimal(str(center_price * (1 + actual_spread)))
+                
+                # Smart rounding based on price level for natural look
+                if buy_price > 10:
+                    buy_price = buy_price.quantize(Decimal('0.0001'))
+                    sell_price = sell_price.quantize(Decimal('0.0001'))
+                else:
+                    buy_price = buy_price.quantize(Decimal('0.00001'))
+                    sell_price = sell_price.quantize(Decimal('0.00001'))
+                
+                # Create buy order
+                buy_margin = buy_price * actual_size * margin_ratio
+                # Round margin to avoid decimal precision issues with blockchain
+                buy_margin = buy_margin.quantize(Decimal('0.01'))
+                buy_order = self.composer.derivative_order(
+                    market_id=market_id,
+                    subaccount_id=self.address.get_subaccount_id(0),
+                    fee_recipient=self.address.to_acc_bech32(),
+                    price=buy_price,
+                    quantity=actual_size,
+                    margin=buy_margin,
+                    order_type="BUY",
+                    cid=None
+                )
+                orders.append(buy_order)
+                
+                # Create sell order
+                sell_margin = sell_price * actual_size * margin_ratio
+                # Round margin to avoid decimal precision issues with blockchain
+                sell_margin = sell_margin.quantize(Decimal('0.01'))
+                sell_order = self.composer.derivative_order(
+                    market_id=market_id,
+                    subaccount_id=self.address.get_subaccount_id(0),
+                    fee_recipient=self.address.to_acc_bech32(),
+                    price=sell_price,
+                    quantity=actual_size,
+                    margin=sell_margin,
+                    order_type="SELL",
+                    cid=None
+                )
+                orders.append(sell_order)
+            
+            log(f"📖 Created beautiful orderbook with {len(orders)} staircase levels", self.wallet_id)
             
         except Exception as e:
             log(f"❌ Error creating beautiful orderbook for {market_symbol}: {e}", self.wallet_id)
@@ -843,22 +925,41 @@ class SingleWalletTrader:
                     price_scale_factor = Decimal('1000000')  # 10^6 for derivatives
                     
                     if buys and sells:
-                        # Both sides available - use mid price
+                        # Both sides available - use mid price (most reliable)
                         best_bid = Decimal(str(buys[0]['price'])) / price_scale_factor
                         best_ask = Decimal(str(sells[0]['price'])) / price_scale_factor
                         mid_price = float((best_bid + best_ask) / 2)
                         log(f"📊 Using DERIVATIVE ORDERBOOK mid-price: ${mid_price:.4f} for {market_symbol}", self.wallet_id, market_id)
                         return mid_price
-                    elif buys:
-                        # Only buys available - use best bid
-                        best_bid = Decimal(str(buys[0]['price'])) / price_scale_factor
-                        log(f"📊 Using derivative best BID price: ${float(best_bid):.4f} for {market_symbol}", self.wallet_id, market_id)
-                        return float(best_bid)
-                    elif sells:
-                        # Only sells available - use best ask
-                        best_ask = Decimal(str(sells[0]['price'])) / price_scale_factor
-                        log(f"📊 Using derivative best ASK price: ${float(best_ask):.4f} for {market_symbol}", self.wallet_id, market_id)
-                        return float(best_ask)
+                    else:
+                        # ONE-SIDED ORDERBOOK: Get last trade price instead (more reliable than one side)
+                        log(f"⚠️ One-sided orderbook detected, fetching last trade price...", self.wallet_id, market_id)
+                        from pyinjective.client.model.pagination import PaginationOption
+                        try:
+                            trades = await asyncio.wait_for(
+                                self.indexer_client.fetch_derivative_trades(
+                                    market_ids=[market_id],
+                                    pagination=PaginationOption(limit=1)
+                                ),
+                                timeout=5.0
+                            )
+                            if trades and hasattr(trades, 'trades') and len(trades.trades) > 0:
+                                last_trade = trades.trades[0]
+                                trade_price = float(Decimal(str(last_trade.position_delta.execution_price)))
+                                log(f"📊 Using last TRADE price: ${trade_price:.4f} for {market_symbol}", self.wallet_id, market_id)
+                                return trade_price
+                        except Exception as trade_err:
+                            log(f"⚠️ Could not fetch last trade: {trade_err}", self.wallet_id, market_id)
+                        
+                        # Fallback to one side if trade fetch fails
+                        if buys:
+                            best_bid = Decimal(str(buys[0]['price'])) / price_scale_factor
+                            log(f"📊 Fallback to best BID: ${float(best_bid):.4f} for {market_symbol}", self.wallet_id, market_id)
+                            return float(best_bid)
+                        elif sells:
+                            best_ask = Decimal(str(sells[0]['price'])) / price_scale_factor
+                            log(f"📊 Fallback to best ASK: ${float(best_ask):.4f} for {market_symbol}", self.wallet_id, market_id)
+                            return float(best_ask)
                 
                 return 0.0
                 

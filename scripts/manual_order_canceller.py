@@ -74,16 +74,17 @@ class ManualOrderCanceller:
             self.sequence = self.async_client.sequence
             self.account_number = self.async_client.number
             
-            # Set up broadcaster
+            # Set up broadcaster with enhanced settings for derivative orders
             gas_price = await self.async_client.current_chain_gas_price()
-            gas_price = int(gas_price * 1.1)
+            gas_price = int(gas_price * 1.1)  # Increased gas price for derivative order complexity
             
             self.broadcaster = MsgBroadcasterWithPk.new_using_gas_heuristics(
                 network=self.network,
                 private_key=self.private_key,
                 gas_price=gas_price
             )
-            self.broadcaster.timeout_height_offset = 20
+            
+            self.broadcaster.timeout_height_offset = 300  # Much longer timeout to prevent expiration
             
             log(f"✅ Manual canceller initialized for {self.wallet_id}: {self.address.to_acc_bech32()}", self.wallet_id)
             return True
@@ -101,9 +102,9 @@ class ManualOrderCanceller:
                 self.sequence = self.async_client.sequence
                 self.account_number = self.async_client.number
                 
-                # Update gas price before each attempt
+                # Update gas price before each attempt - more aggressive for derivatives
                 gas_price = await self.async_client.current_chain_gas_price()
-                gas_price = int(gas_price * (1.2 + attempt * 0.1))  # Increase gas price on retry
+                gas_price = int(gas_price * (1.1 + attempt * 0.15))  # More aggressive gas price increase on retry
                 self.broadcaster.update_gas_price(gas_price=gas_price)
                 
                 # Broadcast the message
@@ -139,6 +140,24 @@ class ManualOrderCanceller:
                     raise e
         
         return None
+    
+    def _estimate_batch_gas(self, spot_count: int, derivative_count: int) -> int:
+        """Estimate gas needed for a batch of order cancellations"""
+        # Base transaction gas
+        base_gas = 100000  # Reasonable base gas
+        
+        # Gas per order type (based on real failures: 5 derivative orders = 456k gas)
+        # So: (456k - 100k base) / 5 orders = ~71k per derivative order
+        spot_gas_per_order = 50000
+        derivative_gas_per_order = 100000  # Conservative but reasonable estimate
+        
+        # Calculate total
+        total_gas = base_gas + (spot_count * spot_gas_per_order) + (derivative_count * derivative_gas_per_order)
+        
+        # Add 20% safety buffer 
+        total_gas = int(total_gas * 1.2)
+        
+        return total_gas
     
     async def get_active_orders(self, market_id: str) -> List[Dict]:
         """Get active orders for a specific market with full pagination support"""
@@ -202,6 +221,26 @@ class ManualOrderCanceller:
     async def cancel_orders_for_market(self, market_id: str, market_symbol: str) -> bool:
         """Cancel all orders for a specific market with unlimited batches until completion"""
         try:
+            # Batch size limits to prevent gas overflow - ultra conservative based on real failures
+            MAX_SPOT_BATCH_SIZE = 10  # Spot orders are simpler but still limit for safety
+            MAX_DERIVATIVE_BATCH_SIZE = 3   # Maximum safety: 2 orders = ~299k gas with 30% buffer
+            
+            # Get initial order count for planning
+            initial_orders = await self.get_active_orders(market_id)
+            if initial_orders:
+                spot_count = sum(1 for order in initial_orders if order['type'] == 'spot')
+                derivative_count = sum(1 for order in initial_orders if order['type'] == 'derivative')
+                
+                # Calculate batch estimates
+                spot_batches = (spot_count + 9) // 10 if spot_count > 0 else 0  # 10 spot orders per batch
+                derivative_batches = (derivative_count + 1) // 2 if derivative_count > 0 else 0  # 2 derivative orders per batch
+                total_batches = max(spot_batches, derivative_batches)
+                estimated_time = total_batches * 5  # 5 seconds per batch
+                
+                log(f"📊 Initial scan: {len(initial_orders)} orders ({spot_count} spot, {derivative_count} derivative)", self.wallet_id)
+                log(f"⏱️ Estimated work: ~{total_batches} batches, ~{estimated_time}s ({estimated_time//60}m{estimated_time%60}s)", self.wallet_id)
+                log(f"🔧 Batch sizes: {MAX_SPOT_BATCH_SIZE} spot orders, {MAX_DERIVATIVE_BATCH_SIZE} derivative orders per batch", self.wallet_id)
+            
             total_cancelled = 0
             attempt = 0
             start_time = asyncio.get_event_loop().time()
@@ -232,11 +271,29 @@ class ManualOrderCanceller:
                         log(f"ℹ️ No active orders found for {market_symbol}", self.wallet_id)
                     return True
                 
-                log(f"📋 Found {len(active_orders)} active orders to cancel (batch {attempt}, total cancelled so far: {total_cancelled})", self.wallet_id)
+                # Calculate progress estimates
+                total_orders_found = len(active_orders)
                 
-                # Separate spot and derivative orders
+                # Estimate total batches needed for current batch
+                spot_orders = sum(1 for order in active_orders if order['type'] == 'spot')
+                derivative_orders = sum(1 for order in active_orders if order['type'] == 'derivative')
+                
+                estimated_spot_batches = (spot_orders + MAX_SPOT_BATCH_SIZE - 1) // MAX_SPOT_BATCH_SIZE if spot_orders > 0 else 0
+                estimated_derivative_batches = (derivative_orders + MAX_DERIVATIVE_BATCH_SIZE - 1) // MAX_DERIVATIVE_BATCH_SIZE if derivative_orders > 0 else 0
+                estimated_total_batches = max(estimated_spot_batches, estimated_derivative_batches)
+                
+                # Calculate time estimate (3 seconds per batch + processing time)
+                estimated_time = estimated_total_batches * 5  # 3s sleep + 2s processing time per batch
+                
+                log(f"📋 Found {total_orders_found} active orders to cancel (batch {attempt}, total cancelled so far: {total_cancelled})", self.wallet_id)
+                log(f"⏱️ Estimated: ~{estimated_total_batches} batches, ~{estimated_time}s ({estimated_time//60}m{estimated_time%60}s) remaining", self.wallet_id)
+                
+                # Separate spot and derivative orders with batch size limits
                 spot_orders_to_cancel = []
                 derivative_orders_to_cancel = []
+                
+                spot_count = 0
+                derivative_count = 0
                 
                 for order in active_orders:
                     order_data = {
@@ -245,10 +302,20 @@ class ManualOrderCanceller:
                         'order_hash': order['order_hash']
                     }
                     
-                    if order['type'] == 'spot':
+                    if order['type'] == 'spot' and spot_count < MAX_SPOT_BATCH_SIZE:
                         spot_orders_to_cancel.append(order_data)
-                    else:
+                        spot_count += 1
+                    elif order['type'] == 'derivative' and derivative_count < MAX_DERIVATIVE_BATCH_SIZE:
                         derivative_orders_to_cancel.append(order_data)
+                        derivative_count += 1
+                    elif spot_count >= MAX_SPOT_BATCH_SIZE and derivative_count >= MAX_DERIVATIVE_BATCH_SIZE:
+                        # Both batches are full, process what we have
+                        break
+                
+                # Log batch size information
+                if len(active_orders) > (spot_count + derivative_count):
+                    remaining_orders = len(active_orders) - (spot_count + derivative_count)
+                    log(f"📦 Batch limited: {spot_count} spot + {derivative_count} derivative orders (batch {attempt}, {remaining_orders} remaining)", self.wallet_id)
                 
                 # Create batch cancel message
                 msg = self.composer.msg_batch_update_orders(
@@ -259,12 +326,59 @@ class ManualOrderCanceller:
                     spot_orders_to_cancel=spot_orders_to_cancel
                 )
                 
-                # Broadcast cancellation with retry logic
-                response = await self._broadcast_with_retry(msg, max_retries=3)
+                # Determine retry count based on order types - derivatives need more retries
+                max_retries = 5 if derivative_orders_to_cancel else 3
                 
-                # Check for success in different response formats
+                # Add extra timeout for derivative-heavy batches
+                if derivative_orders_to_cancel:
+                    self.broadcaster.timeout_height_offset = 500  # Very long timeout for derivatives
+                else:
+                    self.broadcaster.timeout_height_offset = 300  # Long timeout for spot orders
+                
+                # Calculate estimated gas needed for this batch
+                estimated_gas = self._estimate_batch_gas(spot_count, derivative_count)
+                log(f"🔧 Estimated gas for batch: {estimated_gas} (spot: {spot_count}, derivative: {derivative_count})", self.wallet_id)
+                
+                # Safety check - if estimated gas is too high, skip this batch and log warning
+                MAX_SAFE_GAS = 800000  # 800k gas limit - reasonable for small batches
+                if estimated_gas > MAX_SAFE_GAS:
+                    log(f"⚠️ Batch gas estimate {estimated_gas} exceeds safe limit {MAX_SAFE_GAS}, reducing batch size", self.wallet_id)
+                    # Continue to next iteration with smaller batch
+                    continue
+                
+                # Refresh broadcaster timeout to prevent expiration
+                current_height = await self.async_client.get_latest_block()
+                if hasattr(current_height, 'block'):
+                    current_block_height = int(current_height.block.header.height)
+                    # Set timeout well into the future
+                    self.broadcaster.timeout_height_offset = 1000  # Very long timeout
+                    log(f"🔄 Refreshed timeout: current block {current_block_height}, timeout offset {self.broadcaster.timeout_height_offset}", self.wallet_id)
+                
+                # Broadcast cancellation with enhanced retry logic
+                response = await self._broadcast_with_retry(msg, max_retries=max_retries)
+                
+                # Check for success in different response formats with detailed logging
                 success = False
                 tx_hash = None
+                
+                # Add detailed response logging to capture chain errors
+                if response:
+                    log(f"🔍 Full response type: {type(response)}", self.wallet_id)
+                    if hasattr(response, 'tx_response') and response.tx_response:
+                        log(f"🔍 TX Response code: {response.tx_response.code}", self.wallet_id)
+                        if response.tx_response.code != 0:
+                            log(f"❌ TX Response error: {response.tx_response.raw_log}", self.wallet_id)
+                            log(f"🔍 Gas wanted: {getattr(response.tx_response, 'gas_wanted', 'unknown')}", self.wallet_id)
+                            log(f"🔍 Gas used: {getattr(response.tx_response, 'gas_used', 'unknown')}", self.wallet_id)
+                    elif isinstance(response, dict):
+                        log(f"🔍 Dict response keys: {list(response.keys())}", self.wallet_id)
+                        if 'txResponse' in response:
+                            tx_resp = response['txResponse']
+                            log(f"🔍 TX Response code: {tx_resp.get('code', 'unknown')}", self.wallet_id)
+                            if tx_resp.get('code', 0) != 0:
+                                log(f"❌ TX Response error: {tx_resp.get('raw_log', 'unknown')}", self.wallet_id)
+                                log(f"🔍 Gas wanted: {tx_resp.get('gas_wanted', 'unknown')}", self.wallet_id)
+                                log(f"🔍 Gas used: {tx_resp.get('gas_used', 'unknown')}", self.wallet_id)
                 
                 if response and hasattr(response, 'tx_response') and response.tx_response and response.tx_response.code == 0:
                     success = True
@@ -279,15 +393,18 @@ class ManualOrderCanceller:
                         tx_hash = tx_response.get('txhash')
                 
                 if success:
-                    batch_cancelled = len(active_orders)
+                    batch_cancelled = spot_count + derivative_count
                     total_cancelled += batch_cancelled
                     elapsed_time = current_time - start_time
-                    log(f"✅ Successfully cancelled {batch_cancelled} orders for {market_symbol} (batch {attempt}, total: {total_cancelled}, {elapsed_time:.1f}s)", self.wallet_id)
+                    
+                    # Enhanced logging with order type breakdown
+                    order_breakdown = f"{spot_count} spot, {derivative_count} derivative" if derivative_count > 0 else f"{spot_count} spot"
+                    log(f"✅ Successfully cancelled {batch_cancelled} orders ({order_breakdown}) for {market_symbol} (batch {attempt}, total: {total_cancelled}, {elapsed_time:.1f}s)", self.wallet_id)
                     if tx_hash:
                         log(f"📝 Transaction: {tx_hash}", self.wallet_id)
                     
-                    # Wait a moment for the blockchain to process the cancellation
-                    await asyncio.sleep(2)
+                    # Wait longer for the blockchain to process the cancellation and be gentle on network
+                    await asyncio.sleep(1)  # Increased from 2 to 3 seconds for reliability
                     
                     # Continue to next batch if there might be more orders
                     continue

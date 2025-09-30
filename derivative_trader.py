@@ -406,18 +406,18 @@ class SingleWalletTrader:
             # Cycle through stages (reset to 0 after stage 4)
             min_spread, max_spread = spread_ranges[current_stage % len(spread_ranges)]
             
-            # Place 2-3 orders per side at this depth stage
-            num_orders_per_side = random.randint(2, 3)
+            # Place 5-8 SMALL orders per side at VARIED prices for organic look
+            num_orders_per_side = random.randint(5, 8)
             
             log(f"📏 Depth stage {current_stage}: spread range {min_spread*100:.1f}%-{max_spread*100:.1f}%", self.wallet_id)
             
             for i in range(num_orders_per_side):
-                # Random spread within this stage's range
+                # Random spread within this stage's range - each order at different price
                 spread = random.uniform(min_spread, max_spread)
                 offset = spread
                 
-                # Randomize size (50%-80% of base size for gradual building)
-                size_mult = random.uniform(0.5, 0.8)
+                # Smaller sizes (20%-50% of base) but more orders for organic look
+                size_mult = random.uniform(0.2, 0.5)
                 actual_size = (order_size * Decimal(str(size_mult))).quantize(Decimal('0.001'))
                 
                 # Buy order
@@ -457,8 +457,8 @@ class SingleWalletTrader:
             
             log(f"📝 Created {len(orders)} gradual orders ({num_orders_per_side} buys + {num_orders_per_side} sells)", self.wallet_id)
             
-            # Get orders to cancel (2-3 oldest)
-            num_to_cancel = random.randint(2, 3)
+            # Cancel more orders to match higher creation rate (5-8 created, cancel 4-6)
+            num_to_cancel = random.randint(4, 6)
             orders_to_cancel = await self.get_open_orders_to_cancel(market_id, num_to_cancel)
             
         except Exception as e:

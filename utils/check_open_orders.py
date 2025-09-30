@@ -111,7 +111,7 @@ async def check_open_orders():
         logging.info(config_msg)
         wallets_config = load_wallets_from_env()
         
-        with open('../config/markets_config.json', 'r') as f:
+        with open('config/markets_config.json', 'r') as f:
             markets_config = json.load(f)
         
         # Log configuration summary

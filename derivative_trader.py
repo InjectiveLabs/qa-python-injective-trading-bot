@@ -315,7 +315,7 @@ class SingleWalletTrader:
         """
         Fetch open orders for a market and select oldest ones to cancel
         
-        Returns: List of order hashes to cancel
+        Returns: List of order data dicts (market_id, subaccount_id, order_hash) for cancellation
         """
         try:
             from pyinjective.client.model.pagination import PaginationOption
@@ -348,12 +348,20 @@ class SingleWalletTrader:
             # Select up to num_to_cancel oldest orders
             orders_to_cancel = sorted_orders[:min(num_to_cancel, len(sorted_orders))]
             
-            order_hashes = [order.get('orderHash') for order in orders_to_cancel]
+            # Format as order data dicts for composer (matching manual_order_canceller.py format)
+            order_data_list = [
+                {
+                    'market_id': market_id,
+                    'subaccount_id': self.address.get_subaccount_id(0),
+                    'order_hash': order.get('orderHash')
+                }
+                for order in orders_to_cancel
+            ]
             
-            if order_hashes:
-                log(f"🗑️ Selected {len(order_hashes)} orders to cancel", self.wallet_id)
+            if order_data_list:
+                log(f"🗑️ Selected {len(order_data_list)} orders to cancel", self.wallet_id)
             
-            return order_hashes
+            return order_data_list
             
         except Exception as e:
             log(f"⚠️ Error fetching orders to cancel: {e}", self.wallet_id)

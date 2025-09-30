@@ -89,6 +89,7 @@ class SingleWalletTrader:
         self.last_prices = {}
         self.last_rebalance = 0
         self.orderbook_built = {}  # market_id -> bool (tracks if initial orderbook is built)
+        self.orderbook_depth_stage = {}  # market_id -> int (tracks how far out we've built)
         
         # Trading statistics
         self.trading_stats = {
@@ -298,6 +299,9 @@ class SingleWalletTrader:
                     return await self.gradual_orderbook_update(market_id, market_symbol, market_config, price, mainnet_price)
                 else:
                     # LARGE GAP: Create full beautiful orderbook to move market (no cancellations)
+                    # Reset depth stage when price diverges significantly
+                    if market_id in self.orderbook_depth_stage:
+                        self.orderbook_depth_stage[market_id] = 0
                     log(f"✨ Large price gap ({price_gap_percent:.2f}%) - creating full orderbook at mainnet price ${mainnet_price:.4f} (testnet: ${price:.4f})", self.wallet_id)
                     # Returns list only (no cancellations during initial build)
                     return await self.create_beautiful_orderbook(market_id, market_symbol, market_config, price, mainnet_price)
@@ -371,7 +375,7 @@ class SingleWalletTrader:
                                        testnet_price: float, mainnet_price: float) -> list:
         """
         Gradually build orderbook when prices are aligned
-        - Add 2-3 small orders on each side
+        - Progressively expand spread range to build depth outward
         - Cancel 2-3 oldest orders to refresh (returned separately for batch update)
         
         Returns: (new_orders, orders_to_cancel)
@@ -380,15 +384,37 @@ class SingleWalletTrader:
         try:
             order_size = Decimal(str(market_config["order_size"]))
             margin_ratio = Decimal("0.1")
-            center_price = mainnet_price
+            # Use TESTNET price as center when aligned - we're maintaining current market, not pushing it
+            center_price = testnet_price
             
-            # Small randomized orders - just 2-3 per side
+            # Track depth expansion stage (how far out we've built)
+            if market_id not in self.orderbook_depth_stage:
+                self.orderbook_depth_stage[market_id] = 0
+            
+            # Progressive depth expansion - each cycle pushes orders further out
+            current_stage = self.orderbook_depth_stage[market_id]
+            
+            # Define spread ranges for each stage (gradually expanding)
+            spread_ranges = [
+                (0.001, 0.005),  # Stage 0: 0.1%-0.5% (tight center)
+                (0.005, 0.015),  # Stage 1: 0.5%-1.5% (mid range)
+                (0.015, 0.03),   # Stage 2: 1.5%-3% (wider)
+                (0.03, 0.05),    # Stage 3: 3%-5% (deep)
+                (0.05, 0.08),    # Stage 4: 5%-8% (very deep)
+            ]
+            
+            # Cycle through stages (reset to 0 after stage 4)
+            min_spread, max_spread = spread_ranges[current_stage % len(spread_ranges)]
+            
+            # Place 2-3 orders per side at this depth stage
             num_orders_per_side = random.randint(2, 3)
             
+            log(f"📏 Depth stage {current_stage}: spread range {min_spread*100:.1f}%-{max_spread*100:.1f}%", self.wallet_id)
+            
             for i in range(num_orders_per_side):
-                # Random spread between 0.1% and 2%
-                spread = random.uniform(0.001, 0.02)
-                offset = spread * (i + 1)
+                # Random spread within this stage's range
+                spread = random.uniform(min_spread, max_spread)
+                offset = spread
                 
                 # Randomize size (50%-80% of base size for gradual building)
                 size_mult = random.uniform(0.5, 0.8)
@@ -425,6 +451,9 @@ class SingleWalletTrader:
                     order_type="SELL",
                     cid=None
                 ))
+            
+            # Advance to next depth stage
+            self.orderbook_depth_stage[market_id] = current_stage + 1
             
             log(f"📝 Created {len(orders)} gradual orders ({num_orders_per_side} buys + {num_orders_per_side} sells)", self.wallet_id)
             

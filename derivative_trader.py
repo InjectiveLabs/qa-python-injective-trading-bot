@@ -186,6 +186,7 @@ class SingleWalletTrader:
             # Collect all orders for DERIVATIVE markets ONLY
             spot_orders = []
             derivative_orders = []
+            derivative_orders_to_cancel = []  # Track orders to cancel
             
             # Filter for derivative markets only
             derivative_market_symbols = [
@@ -250,12 +251,19 @@ class SingleWalletTrader:
                     continue
                 
                 # Create derivative orders (we already filtered for derivatives only)
-                market_derivative_orders = await self.create_derivative_orders(market_id, market_symbol, market_config, price)
-                derivative_orders.extend(market_derivative_orders)
+                result = await self.create_derivative_orders(market_id, market_symbol, market_config, price)
+                
+                # Handle both tuple (with cancellations) and list (without cancellations) returns
+                if isinstance(result, tuple):
+                    market_derivative_orders, market_cancellations = result
+                    derivative_orders.extend(market_derivative_orders)
+                    derivative_orders_to_cancel.extend(market_cancellations)
+                else:
+                    derivative_orders.extend(result)
             
             # If we have orders, send them in one batch transaction
-            if spot_orders or derivative_orders:
-                await self.send_batch_orders(spot_orders, derivative_orders)
+            if spot_orders or derivative_orders or derivative_orders_to_cancel:
+                await self.send_batch_orders(spot_orders, derivative_orders, derivative_orders_to_cancel)
             else:
                 log("⚠️ No orders to place in this cycle", self.wallet_id)
                 
@@ -284,12 +292,14 @@ class SingleWalletTrader:
                 is_aligned = price_gap_percent <= 2.0
                 
                 if is_aligned:
-                    # GRADUAL BUILDING: Prices are close, just add small orders
+                    # GRADUAL BUILDING: Prices are close, add small orders + cancel old ones
                     log(f"🔄 Gradual orderbook building (gap: {price_gap_percent:.2f}%) - adding 2-3 orders per side", self.wallet_id)
+                    # Returns tuple: (new_orders, orders_to_cancel)
                     return await self.gradual_orderbook_update(market_id, market_symbol, market_config, price, mainnet_price)
                 else:
-                    # LARGE GAP: Create full beautiful orderbook to move market
+                    # LARGE GAP: Create full beautiful orderbook to move market (no cancellations)
                     log(f"✨ Large price gap ({price_gap_percent:.2f}%) - creating full orderbook at mainnet price ${mainnet_price:.4f} (testnet: ${price:.4f})", self.wallet_id)
+                    # Returns list only (no cancellations during initial build)
                     return await self.create_beautiful_orderbook(market_id, market_symbol, market_config, price, mainnet_price)
             else:
                 # Can't get mainnet price - use testnet price as fallback
@@ -301,12 +311,62 @@ class SingleWalletTrader:
             
         return orders
     
+    async def get_open_orders_to_cancel(self, market_id: str, num_to_cancel: int = 3) -> list:
+        """
+        Fetch open orders for a market and select oldest ones to cancel
+        
+        Returns: List of order hashes to cancel
+        """
+        try:
+            from pyinjective.client.model.pagination import PaginationOption
+            
+            # Fetch open orders for this market
+            # Note: API uses market_ids (plural) not market_id (singular)
+            orders_response = await self.indexer_client.fetch_derivative_orders(
+                market_ids=[market_id],  # Pass as list
+                subaccount_id=self.address.get_subaccount_id(0),
+                pagination=PaginationOption(limit=100)
+            )
+            
+            # API returns dict with 'orders' key, not an object
+            if not orders_response or 'orders' not in orders_response:
+                log(f"⚠️ No orders response from API for cancellation", self.wallet_id)
+                return []
+            
+            # Get orders list from response dict
+            orders = orders_response['orders']
+            if len(orders) == 0:
+                log(f"⚠️ No open orders found to cancel (orderbook may be too fresh)", self.wallet_id)
+                return []
+            
+            log(f"📋 Found {len(orders)} open orders, selecting {min(num_to_cancel, len(orders))} to cancel", self.wallet_id)
+            
+            # Sort by order_hash to get consistent ordering (older orders typically have lower hashes)
+            # Orders are dict objects, so use dict access
+            sorted_orders = sorted(orders, key=lambda x: x.get('orderHash', ''))
+            
+            # Select up to num_to_cancel oldest orders
+            orders_to_cancel = sorted_orders[:min(num_to_cancel, len(sorted_orders))]
+            
+            order_hashes = [order.get('orderHash') for order in orders_to_cancel]
+            
+            if order_hashes:
+                log(f"🗑️ Selected {len(order_hashes)} orders to cancel", self.wallet_id)
+            
+            return order_hashes
+            
+        except Exception as e:
+            log(f"⚠️ Error fetching orders to cancel: {e}", self.wallet_id)
+            return []
+    
     async def gradual_orderbook_update(self, market_id: str, market_symbol: str, market_config: Dict,
                                        testnet_price: float, mainnet_price: float) -> list:
         """
         Gradually build orderbook when prices are aligned
         - Add 2-3 small orders on each side
-        - Cancel 2-3 oldest orders to refresh
+        - Cancel 2-3 oldest orders to refresh (returned separately for batch update)
+        
+        Returns: (new_orders, orders_to_cancel)
         """
         orders = []
         try:
@@ -360,10 +420,15 @@ class SingleWalletTrader:
             
             log(f"📝 Created {len(orders)} gradual orders ({num_orders_per_side} buys + {num_orders_per_side} sells)", self.wallet_id)
             
+            # Get orders to cancel (2-3 oldest)
+            num_to_cancel = random.randint(2, 3)
+            orders_to_cancel = await self.get_open_orders_to_cancel(market_id, num_to_cancel)
+            
         except Exception as e:
             log(f"❌ Error creating gradual orders for {market_symbol}: {e}", self.wallet_id)
+            orders_to_cancel = []
             
-        return orders
+        return orders, orders_to_cancel
     
     async def create_beautiful_orderbook(self, market_id: str, market_symbol: str, market_config: Dict, 
                                          testnet_price: float, mainnet_price: float) -> list:
@@ -462,7 +527,7 @@ class SingleWalletTrader:
             
         return orders
     
-    async def send_batch_orders(self, spot_orders: list, derivative_orders: list):
+    async def send_batch_orders(self, spot_orders: list, derivative_orders: list, derivative_orders_to_cancel: list = None):
         """
         Professional batch order sender with intelligent sequence recovery
         
@@ -471,8 +536,13 @@ class SingleWalletTrader:
         - Intelligent sequence error detection and recovery
         - Circuit breaker for persistent failures
         - Proactive sequence refresh
+        - Batch order cancellation + creation in single transaction
         """
+        if derivative_orders_to_cancel is None:
+            derivative_orders_to_cancel = []
+            
         total_orders = len(spot_orders) + len(derivative_orders)
+        total_cancellations = len(derivative_orders_to_cancel)
         max_retries = 3
         base_delay = 0.5
         
@@ -498,7 +568,7 @@ class SingleWalletTrader:
                         sender=self.address.to_acc_bech32(),
                         spot_orders_to_create=[],  # No spot orders
                         derivative_orders_to_create=derivative_orders,
-                        derivative_orders_to_cancel=[],
+                        derivative_orders_to_cancel=derivative_orders_to_cancel,  # Cancel old orders
                         spot_orders_to_cancel=[]
                     )
                     
@@ -523,7 +593,8 @@ class SingleWalletTrader:
                     self.trading_stats['total_transactions'] += 1
                     self.consecutive_sequence_errors = 0  # Reset error counter
                     
-                    log(f"✅ Placed {total_orders} orders ({len(spot_orders)} spot, {len(derivative_orders)} derivative) | TX: {tx_hash}", self.wallet_id)
+                    cancel_msg = f", cancelled {total_cancellations}" if total_cancellations > 0 else ""
+                    log(f"✅ Placed {total_orders} orders ({len(spot_orders)} spot, {len(derivative_orders)} derivative{cancel_msg}) | TX: {tx_hash}", self.wallet_id)
                     
                     # Refresh sequence after success to stay in sync
                     await self.refresh_sequence()

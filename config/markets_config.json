@@ -38,6 +38,45 @@
         "correction_cooldown": 240
       }
     },
+    "TIA/USDT": {
+      "testnet_market_id": "0xa283fc94a9055a01a58bb6229b1e56a8bb54069a0debfce7fbd1e6c25a95330c",
+      "mainnet_market_id": "0x35fd4fa9291ea68ce5eef6e0ea8567c7744c1891c2059ef08580ba2e7a31f101",
+      "enabled": true,
+      "type": "spot",
+      "spread_percent": 0.4,
+      "order_size": 20,
+      "min_spread": 0.1,
+      "max_spread": 1.8,
+      "max_wallets": 3,
+      "orders_per_wallet": 3,
+      "price_correction": {
+        "enabled": true,
+        "deviation_threshold": 4.0,
+        "correction_aggressiveness": 0.7,
+        "max_correction_size": 150,
+        "correction_cooldown": 240
+      }
+    },
+    "HDRO/INJ": {
+      "testnet_market_id": "0xd8e9ea042ac67990134d8e024a251809b1b76c5f7df49f511858e040a285efca",
+      "mainnet_market_id": "0xc8fafa1fcab27e16da20e98b4dc9dda45320418c27db80663b21edac72f3b597",
+      "enabled": true,
+      "type": "spot",
+      "spread_percent": 0.5,
+      "order_size": 100,
+      "min_spread": 0.15,
+      "max_spread": 2.0,
+      "max_wallets": 3,
+      "orders_per_wallet": 3,
+      "price_correction": {
+        "enabled": true,
+        "deviation_threshold": 5.0,
+        "correction_aggressiveness": 0.7,
+        "max_correction_size": 800,
+        "correction_cooldown": 300
+      }
+    },
+    
     "INJ/USDT-PERP": {
       "testnet_market_id": "0x17ef48032cb24375ba7c2e39f384e56433bcab20cbee9a7357e4cba2eb00abe6",
       "mainnet_market_id": "0x9b9980167ecc3645ff1a5517886652d94a0825e54a77d2057cbbe3ebee015963",

@@ -15,6 +15,7 @@ from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Dict, List, Optional
+from logging.handlers import TimedRotatingFileHandler
 
 from pyinjective.async_client_v2 import AsyncClient
 from pyinjective.indexer_client import IndexerClient
@@ -27,8 +28,39 @@ sys.path.append(str(Path(__file__).parent))
 
 from utils.secure_wallet_loader import load_wallets_from_env
 
+# Configure daily rotating file logger
+os.makedirs("logs", exist_ok=True)
+
+# Create logger
+_logger = logging.getLogger('spot_trader')
+_logger.setLevel(logging.INFO)
+
+# Daily rotating file handler - new file at midnight, keep 7 days
+file_handler = TimedRotatingFileHandler(
+    'logs/spot_trader.log',
+    when='midnight',      # Rotate at midnight
+    interval=1,           # Every 1 day
+    backupCount=7,        # Keep 7 days of logs
+    encoding='utf-8'
+)
+file_handler.setLevel(logging.INFO)
+# Add date suffix to rotated files (e.g., spot_trader.log.2025-10-01)
+file_handler.suffix = "%Y-%m-%d"
+
+# Console handler
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.INFO)
+
+# Format: [timestamp] [wallet_id] message
+formatter = logging.Formatter('[%(asctime)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+_logger.addHandler(file_handler)
+_logger.addHandler(console_handler)
+
 def log(message: str, wallet_id: str = None, market_id: str = None):
-    """Enhanced logging with wallet and market context"""
+    """Enhanced logging with wallet and market context + rotation"""
     prefix = f"[{wallet_id}]" if wallet_id else ""
     if market_id:
         prefix += f"[{market_id}]"
@@ -36,20 +68,7 @@ def log(message: str, wallet_id: str = None, market_id: str = None):
         prefix += " "
     
     formatted_message = f"{prefix}{message}"
-    
-    # Print to console
-    print(formatted_message)
-    
-    # Save to log file
-    try:
-        os.makedirs("logs", exist_ok=True)
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_entry = f"[{timestamp}] {formatted_message}\n"
-        
-        with open("logs/spot_trader.log", "a") as f:
-            f.write(log_entry)
-    except Exception as e:
-        print(f"Failed to write to log file: {e}")
+    _logger.info(formatted_message)
 
 class EnhancedSpotTrader:
     def __init__(self, wallet_id: str, target_market: str = None, 
@@ -96,6 +115,9 @@ class EnhancedSpotTrader:
         self.orderbook_depth_stage = {}  # market_id -> int (tracks how far out we've built)
         self.orderbook_depth_built = {}  # market_id -> int (tracks total orders in book)
         self.last_orderbook_check = {}  # market_id -> timestamp of last depth check
+        
+        # Market metadata cache for proper price scaling
+        self.market_metadata = {}  # market_id -> {base_decimals, quote_decimals, etc}
         
         # Professional sequence management
         self.sequence_lock = asyncio.Lock()
@@ -402,12 +424,19 @@ class EnhancedSpotTrader:
             is_price_aligned = price_gap_percent <= 2.0
             is_price_moderate = price_gap_percent <= 10.0
             is_price_diverged = price_gap_percent > 10.0
+            is_price_extreme = price_gap_percent > 100.0  # EXTREME gap needs aggressive push
             we_have_orders = depth_info['our_orders'] > 0
             we_have_good_depth = depth_info['our_orders'] >= 30
             
-            # PHASE 1: LARGE GAP - Always build full orderbook centered on mainnet
+            # PHASE 0: EXTREME GAP - Aggressive market moving with directional orders
+            # For gaps >100%, we need to actively push price towards mainnet
+            if is_price_extreme:
+                log(f"🚀 EXTREME GAP ({price_gap_percent:.2f}%) - aggressive price push from ${price:.4f} towards ${mainnet_price:.4f}", self.wallet_id)
+                return await self.aggressive_price_push(market_id, market_symbol, market_config, price, mainnet_price)
+            
+            # PHASE 1: LARGE GAP (10-100%) - Build full orderbook centered on mainnet
             # This "moves" the perceived price by creating a tradeable market at the right level
-            if is_price_diverged:
+            elif is_price_diverged:
                 log(f"🏗️ LARGE GAP ({price_gap_percent:.2f}%) - building full book at mainnet ${mainnet_price:.4f} to establish correct price", self.wallet_id)
                 # Create complete 2-sided orderbook centered on mainnet price
                 return await self.create_beautiful_orderbook(market_id, market_symbol, market_config, price, mainnet_price)
@@ -810,6 +839,166 @@ class EnhancedSpotTrader:
             
         return orders, orders_to_cancel
     
+    async def aggressive_price_push(self, market_id: str, market_symbol: str, market_config: Dict,
+                                     testnet_price: float, mainnet_price: float) -> list:
+        """
+        Aggressive price push for EXTREME gaps (>100%)
+        Handles all edge cases: no liquidity, one-sided books, huge spreads
+        """
+        orders = []
+        try:
+            order_size = Decimal(str(market_config["order_size"]))
+            
+            # STEP 1: Analyze current orderbook to understand market structure
+            orderbook = await self.indexer_client.fetch_spot_orderbook_v2(market_id=market_id, depth=10)
+            buys = orderbook['orderbook'].get('buys', []) if orderbook and 'orderbook' in orderbook else []
+            sells = orderbook['orderbook'].get('sells', []) if orderbook and 'orderbook' in orderbook else []
+            
+            # Get market metadata for price scaling
+            metadata = await self.get_market_metadata(market_id)
+            price_scale = metadata['price_scale_factor']
+            
+            # Determine direction
+            push_down = testnet_price > mainnet_price
+            
+            # Calculate intermediate target (move 20-30% towards mainnet each cycle)
+            price_diff = testnet_price - mainnet_price
+            step_percentage = random.uniform(0.20, 0.30)
+            target_price = testnet_price - (price_diff * step_percentage)
+            
+            # EDGE CASE 1: Empty orderbook - create two-sided market first
+            if not buys and not sells:
+                log(f"⚠️ EMPTY ORDERBOOK - creating initial two-sided market around target ${target_price:.6f}", self.wallet_id)
+                # Create 5 buy and 5 sell orders around target price to establish a market
+                for i in range(5):
+                    spread = 0.01 + (i * 0.01)  # 1%, 2%, 3%, 4%, 5%
+                    
+                    buy_price = Decimal(str(target_price * (1 - spread)))
+                    buy_price = buy_price.quantize(Decimal('0.000001') if buy_price < 1 else Decimal('0.0001'))
+                    sell_price = Decimal(str(target_price * (1 + spread)))
+                    sell_price = sell_price.quantize(Decimal('0.000001') if sell_price < 1 else Decimal('0.0001'))
+                    
+                    size = (order_size * Decimal(str(random.uniform(0.5, 1.5))))
+                    # Quantize to whole numbers for assets like HDRO
+                    size = size.quantize(Decimal('1') if size >= 1 else Decimal('0.001'))
+                    
+                    orders.append(self.composer.spot_order(
+                        market_id=market_id, subaccount_id=self.address.get_subaccount_id(0),
+                        fee_recipient=self.address.to_acc_bech32(), price=buy_price, quantity=size,
+                        order_type="BUY", cid=None
+                    ))
+                    orders.append(self.composer.spot_order(
+                        market_id=market_id, subaccount_id=self.address.get_subaccount_id(0),
+                        fee_recipient=self.address.to_acc_bech32(), price=sell_price, quantity=size,
+                        order_type="SELL", cid=None
+                    ))
+                log(f"🏗️ Created {len(orders)} orders to establish initial market", self.wallet_id)
+                return orders
+            
+            # EDGE CASE 2: One-sided orderbook
+            if push_down and not buys:
+                # Need to push DOWN but no buyers - create buy orders to enable selling
+                log(f"⚠️ No buy orders exist - creating buy ladder at target ${target_price:.6f} to enable price push", self.wallet_id)
+                for i in range(8):
+                    price_offset = i * 0.02  # 0%, 2%, 4%, 6%, etc below target
+                    buy_price = Decimal(str(target_price * (1 - price_offset)))
+                    buy_price = buy_price.quantize(Decimal('0.000001') if buy_price < 1 else Decimal('0.0001'))
+                    size = (order_size * Decimal(str(random.uniform(1.0, 2.0))))
+                    size = size.quantize(Decimal('1') if size >= 1 else Decimal('0.001'))
+                    
+                    orders.append(self.composer.spot_order(
+                        market_id=market_id, subaccount_id=self.address.get_subaccount_id(0),
+                        fee_recipient=self.address.to_acc_bech32(), price=buy_price, quantity=size,
+                        order_type="BUY", cid=None
+                    ))
+                log(f"🏗️ Created {len(orders)} buy orders to establish bid side", self.wallet_id)
+                return orders
+                
+            if not push_down and not sells:
+                # Need to push UP but no sellers - create sell orders to enable buying
+                log(f"⚠️ No sell orders exist - creating sell ladder at target ${target_price:.6f} to enable price push", self.wallet_id)
+                for i in range(8):
+                    price_offset = i * 0.02  # 0%, 2%, 4%, 6%, etc above target
+                    sell_price = Decimal(str(target_price * (1 + price_offset)))
+                    sell_price = sell_price.quantize(Decimal('0.000001') if sell_price < 1 else Decimal('0.0001'))
+                    size = (order_size * Decimal(str(random.uniform(1.0, 2.0))))
+                    size = size.quantize(Decimal('1') if size >= 1 else Decimal('0.001'))
+                    
+                    orders.append(self.composer.spot_order(
+                        market_id=market_id, subaccount_id=self.address.get_subaccount_id(0),
+                        fee_recipient=self.address.to_acc_bech32(), price=sell_price, quantity=size,
+                        order_type="SELL", cid=None
+                    ))
+                log(f"🏗️ Created {len(orders)} sell orders to establish ask side", self.wallet_id)
+                return orders
+            
+            # NORMAL CASE: Place aggressive orders to move price
+            if push_down:
+                # Get best bid to understand where buyers are
+                best_bid = float(Decimal(str(buys[0]['price'])) * price_scale) if buys else target_price
+                
+                # Calculate how much LOWER than best bid we should go (5-15% below)
+                undercut_pct = random.uniform(0.05, 0.15)  # 5-15% below best bid
+                sell_price_target = best_bid * (1 - undercut_pct)
+                # But never go below our final target
+                sell_price_target = max(sell_price_target, target_price)
+                
+                log(f"📉 Pushing price DOWN: best_bid=${best_bid:.6f}, selling at ${sell_price_target:.6f} (target=${target_price:.6f})", self.wallet_id)
+                
+                # Place aggressive sells AT and slightly BELOW best bid to force trades
+                num_orders = random.randint(12, 18)  # Increased for faster convergence
+                for i in range(num_orders):
+                    # Spread orders from best_bid down to sell_price_target
+                    price_offset_pct = random.uniform(0, undercut_pct)
+                    order_price = Decimal(str(best_bid * (1 - price_offset_pct)))
+                    order_price = order_price.quantize(Decimal('0.000001') if order_price < 1 else Decimal('0.0001'))
+                    
+                    size_mult = random.uniform(2.0, 4.0)  # Even larger for aggressive push
+                    actual_size = (order_size * Decimal(str(size_mult)))
+                    actual_size = actual_size.quantize(Decimal('1') if actual_size >= 1 else Decimal('0.001'))
+                    
+                    orders.append(self.composer.spot_order(
+                        market_id=market_id, subaccount_id=self.address.get_subaccount_id(0),
+                        fee_recipient=self.address.to_acc_bech32(), price=order_price, quantity=actual_size,
+                        order_type="SELL", cid=None
+                    ))
+            else:
+                # Get best ask to understand where sellers are
+                best_ask = float(Decimal(str(sells[0]['price'])) * price_scale) if sells else target_price
+                
+                # Calculate how much HIGHER than best ask we should go (5-15% above)
+                overbid_pct = random.uniform(0.05, 0.15)  # 5-15% above best ask
+                buy_price_target = best_ask * (1 + overbid_pct)
+                # But never go above our final target
+                buy_price_target = min(buy_price_target, target_price)
+                
+                log(f"📈 Pushing price UP: best_ask=${best_ask:.6f}, buying at ${buy_price_target:.6f} (target=${target_price:.6f})", self.wallet_id)
+                
+                # Place aggressive buys AT and slightly ABOVE best ask to force trades
+                num_orders = random.randint(12, 18)  # Increased for faster convergence
+                for i in range(num_orders):
+                    # Spread orders from best_ask up to buy_price_target
+                    price_offset_pct = random.uniform(0, overbid_pct)
+                    order_price = Decimal(str(best_ask * (1 + price_offset_pct)))
+                    order_price = order_price.quantize(Decimal('0.000001') if order_price < 1 else Decimal('0.0001'))
+                    
+                    size_mult = random.uniform(2.0, 4.0)  # Even larger for aggressive push
+                    actual_size = (order_size * Decimal(str(size_mult)))
+                    actual_size = actual_size.quantize(Decimal('1') if actual_size >= 1 else Decimal('0.001'))
+                    
+                    orders.append(self.composer.spot_order(
+                        market_id=market_id, subaccount_id=self.address.get_subaccount_id(0),
+                        fee_recipient=self.address.to_acc_bech32(), price=order_price, quantity=actual_size,
+                        order_type="BUY", cid=None
+                    ))
+            
+            log(f"🚀 Created {len(orders)} aggressive {'SELL' if push_down else 'BUY'} orders for price push", self.wallet_id)
+            
+        except Exception as e:
+            log(f"❌ Error creating aggressive push orders for {market_symbol}: {e}", self.wallet_id)
+        
+        return orders
+    
     async def create_beautiful_orderbook(self, market_id: str, market_symbol: str, market_config: Dict, 
                                          testnet_price: float, mainnet_price: float) -> list:
         """
@@ -1173,6 +1362,52 @@ class EnhancedSpotTrader:
             pass
         return None
     
+    async def get_market_metadata(self, market_id: str) -> Dict:
+        """Fetch and cache market metadata for proper price scaling"""
+        if market_id in self.market_metadata:
+            return self.market_metadata[market_id]
+        
+        try:
+            # Fetch market details from indexer
+            market = await self.indexer_client.fetch_spot_market(market_id=market_id)
+            
+            if market and 'market' in market:
+                market_data = market['market']
+                
+                # Decimals are in nested tokenMeta objects
+                base_decimals = 18  # default
+                quote_decimals = 6  # default
+                
+                if 'baseTokenMeta' in market_data:
+                    base_decimals = int(market_data['baseTokenMeta'].get('decimals', 18))
+                if 'quoteTokenMeta' in market_data:
+                    quote_decimals = int(market_data['quoteTokenMeta'].get('decimals', 6))
+                
+                metadata = {
+                    'base_decimals': base_decimals,
+                    'quote_decimals': quote_decimals,
+                    'min_price_tick_size': market_data.get('min_price_tick_size'),
+                    'min_quantity_tick_size': market_data.get('min_quantity_tick_size')
+                }
+                
+                # Calculate price scale factor: prices need to be multiplied by 10^(base_decimals - quote_decimals)
+                # This converts from (quote_unit per base_unit) to (quote_token per base_token)
+                decimal_diff = metadata['base_decimals'] - metadata['quote_decimals']
+                metadata['price_scale_factor'] = Decimal(10) ** decimal_diff if decimal_diff != 0 else Decimal(1)
+                
+                self.market_metadata[market_id] = metadata
+                log(f"📊 Loaded market metadata: base_decimals={metadata['base_decimals']}, quote_decimals={metadata['quote_decimals']}, scale=10^{decimal_diff}", self.wallet_id)
+                return metadata
+        except Exception as e:
+            log(f"⚠️ Could not fetch market metadata: {e}, using default scaling", self.wallet_id)
+        
+        # Default fallback
+        return {
+            'base_decimals': 18,
+            'quote_decimals': 6,
+            'price_scale_factor': Decimal('0.000000000001')  # 10^-12
+        }
+    
     async def get_market_price(self, market_id: str, market_symbol: str = "") -> float:
         """Get current testnet market price using LAST TRADE PRICE"""
         max_retries = 3
@@ -1217,11 +1452,9 @@ class EnhancedSpotTrader:
                         else:
                             raise Exception(f"Unexpected price format: {type(price_value)} - {price_value}")
                         
-                        # Scale prices based on market type
-                        if 'stinj' in market_symbol.lower():
-                            price_scale_factor = Decimal('1')
-                        else:
-                            price_scale_factor = Decimal('1000000000000')  # 10^12
+                        # Get market metadata for proper scaling
+                        metadata = await self.get_market_metadata(market_id)
+                        price_scale_factor = metadata['price_scale_factor']
                         
                         last_trade_price = float(trade_price * price_scale_factor)
                         log(f"📈 Using LAST TRADE price: ${last_trade_price:.4f} for {market_symbol}", self.wallet_id)
@@ -1242,11 +1475,9 @@ class EnhancedSpotTrader:
                     buys = orderbook['orderbook'].get('buys', [])
                     sells = orderbook['orderbook'].get('sells', [])
                     
-                    # Scale prices based on market type
-                    if 'stinj' in market_symbol.lower():
-                        price_scale_factor = Decimal('1')
-                    else:
-                        price_scale_factor = Decimal('1000000000000')  # 10^12
+                    # Get market metadata for proper scaling
+                    metadata = await self.get_market_metadata(market_id)
+                    price_scale_factor = metadata['price_scale_factor']
                     
                     if buys and sells:
                         best_bid = Decimal(str(buys[0]['price']))
@@ -1328,11 +1559,25 @@ class EnhancedSpotTrader:
                     buys = orderbook['orderbook'].get('buys', [])
                     sells = orderbook['orderbook'].get('sells', [])
                     
-                    # Mainnet spot price scaling
-                    if 'stinj' in market_symbol.lower():
-                        price_scale_factor = Decimal('1')
+                    # Fetch mainnet market metadata for proper scaling
+                    mainnet_market = await mainnet_indexer.fetch_spot_market(market_id=market_id)
+                    if mainnet_market and 'market' in mainnet_market:
+                        market_data = mainnet_market['market']
+                        
+                        # Decimals are in nested tokenMeta objects
+                        base_decimals = 18  # default
+                        quote_decimals = 6  # default
+                        
+                        if 'baseTokenMeta' in market_data:
+                            base_decimals = int(market_data['baseTokenMeta'].get('decimals', 18))
+                        if 'quoteTokenMeta' in market_data:
+                            quote_decimals = int(market_data['quoteTokenMeta'].get('decimals', 6))
+                        
+                        decimal_diff = base_decimals - quote_decimals
+                        price_scale_factor = Decimal(10) ** decimal_diff if decimal_diff != 0 else Decimal(1)
                     else:
-                        price_scale_factor = Decimal('1000000000000')  # 10^12
+                        # Fallback to default
+                        price_scale_factor = Decimal('0.000000000001')  # 10^-12
                     
                     if buys and sells:
                         best_bid = Decimal(str(buys[0]['price']))

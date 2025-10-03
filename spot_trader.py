@@ -946,7 +946,8 @@ class EnhancedSpotTrader:
                 log(f"📉 Pushing price DOWN: best_bid=${best_bid:.6f}, selling at ${sell_price_target:.6f} (target=${target_price:.6f})", self.wallet_id)
                 
                 # Place aggressive sells AT and slightly BELOW best bid to force trades
-                num_orders = random.randint(12, 18)  # Increased for faster convergence
+                # If only 1 wallet is being used, increase orders to match 3-wallet impact
+                num_orders = random.randint(25, 35)  # ~3x single wallet for equivalent impact
                 for i in range(num_orders):
                     # Spread orders from best_bid down to sell_price_target
                     price_offset_pct = random.uniform(0, undercut_pct)
@@ -975,7 +976,8 @@ class EnhancedSpotTrader:
                 log(f"📈 Pushing price UP: best_ask=${best_ask:.6f}, buying at ${buy_price_target:.6f} (target=${target_price:.6f})", self.wallet_id)
                 
                 # Place aggressive buys AT and slightly ABOVE best ask to force trades
-                num_orders = random.randint(12, 18)  # Increased for faster convergence
+                # If only 1 wallet is being used, increase orders to match 3-wallet impact
+                num_orders = random.randint(25, 35)  # ~3x single wallet for equivalent impact
                 for i in range(num_orders):
                     # Spread orders from best_ask up to buy_price_target
                     price_offset_pct = random.uniform(0, overbid_pct)

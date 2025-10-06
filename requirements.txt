@@ -1,37 +1,49 @@
-# Injective Python SDK - Installed from GitHub (latest version with V2 client support)
-# injective-py  # Removed - installed from GitHub for V2 client support
+# Injective Python SDK
+injective-py==1.11.1
 
 # Web framework for API and UI
-fastapi
-uvicorn[standard]
-websockets
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+websockets==12.0
+python-multipart==0.0.6
 
-# Async HTTP client
-httpx
-aiohttp
+# Async HTTP clients
+httpx==0.28.1
+aiohttp==3.12.15
 
-# Data handling
-pydantic
-python-dotenv
+# Data handling and validation
+pydantic==2.11.7
+pydantic-settings==2.10.1
+python-dotenv==1.1.1
 
-# External price feeds
-requests
-ccxt
+# External price feeds and trading
+requests==2.32.5
+ccxt==4.5.2
 
 # Logging and monitoring
-structlog
+structlog==25.4.0
 
 # Time handling
-python-dateutil
+python-dateutil==2.9.0.post0
 
 # JSON handling
-orjson
+orjson==3.11.2
 
 # Async utilities
-asyncio-mqtt
+asyncio-mqtt==0.16.2
 
-# Development dependencies
-pytest
-pytest-asyncio
-black
-flake8
+# Cryptography and blockchain utilities
+cryptography==45.0.6
+eth-account==0.13.7
+web3==7.13.0
+bech32==1.2.0
+mnemonic==0.21
+
+# Development and testing dependencies
+pytest==8.4.1
+pytest-asyncio==1.1.0
+black==25.1.0
+flake8==7.3.0
+
+# Additional dependencies for production
+PyYAML==6.0.2

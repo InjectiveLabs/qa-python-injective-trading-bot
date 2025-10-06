@@ -70,19 +70,19 @@ graph LR
 
 ### 🛠️ Installation
 
-1. **Navigate to web directory**:
+1. **Navigate to project root**:
 ```bash
-cd web
+cd /path/to/qa-python-injective-trading-bot
 ```
 
-2. **Install web-specific dependencies**:
+2. **Install all dependencies** (consolidated requirements):
 ```bash
 pip install -r requirements.txt
 ```
 
 3. **Start the web server**:
 ```bash
-python app.py
+cd web && python app.py
 ```
 
 4. **Access the dashboard**:

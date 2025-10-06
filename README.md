@@ -265,8 +265,10 @@ git clone <repository-url>
 cd qa-python-injective-trading-bot
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements.txt  # ✨ All dependencies in one file!
 ```
+
+> 📝 **Note**: We use a single `requirements.txt` file for all components (web dashboard, trading bots, and utilities). No more juggling multiple dependency files!
 
 2. **Configure Your Wallets** 🔐
 ```bash

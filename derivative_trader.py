@@ -4,6 +4,7 @@ Single Wallet Trader - Future replacement for enhanced_multi_wallet_trader.py
 Handles one wallet trading on all configured markets
 """
 
+import argparse
 import asyncio
 import json
 import logging
@@ -52,10 +53,11 @@ def log(message: str, wallet_id: str = None, market_id: str = None):
         print(f"Failed to write to log file: {e}")
 
 class SingleWalletTrader:
-    def __init__(self, wallet_id: str, config_path: str = "config/trader_config.json"):
+    def __init__(self, wallet_id: str, config_path: str = "config/trader_config.json", selected_markets: List[str] = None):
         self.wallet_id = wallet_id
         self.config_path = config_path
         self.config = self.load_config()
+        self.selected_markets = selected_markets  # Optional market filter
         
         # Load all wallets from environment
         wallets_config = load_wallets_from_env()
@@ -153,7 +155,7 @@ class SingleWalletTrader:
             )
             
             # Set timeout height offset for network congestion (increased for better reliability)
-            self.broadcaster.timeout_height_offset = 120  # Increased from 60 to 120 blocks
+            self.broadcaster.timeout_height_offset = 200  # Increased to 200 blocks for better reliability
             
             log(f"✅ {self.wallet_id} trader initialized", self.wallet_id)
             
@@ -169,13 +171,28 @@ class SingleWalletTrader:
             try:
                 # Get wallet markets
                 wallet_config = self.config["wallets"][self.wallet_id]
-                markets = wallet_config["markets"]
+                all_markets = wallet_config["markets"]
                 
-                # Trade on ALL markets in a single batch transaction
+                # Filter markets if specific markets were selected
+                if self.selected_markets:
+                    # Validate that selected markets are in the wallet config
+                    invalid_markets = [m for m in self.selected_markets if m not in all_markets]
+                    if invalid_markets:
+                        log(f"❌ Invalid markets for {self.wallet_id}: {invalid_markets}", self.wallet_id)
+                        log(f"Available markets: {all_markets}", self.wallet_id)
+                        return
+                    
+                    markets = self.selected_markets
+                    log(f"🎯 Running with selected markets: {markets}", self.wallet_id)
+                else:
+                    markets = all_markets
+                    log(f"🎯 Running with all configured markets: {markets}", self.wallet_id)
+                
+                # Trade on selected markets in a single batch transaction
                 await self.trade_all_markets_batch(markets)
                 
-                # Wait before next cycle
-                await asyncio.sleep(15)
+                # Wait before next cycle (increased to reduce network pressure)
+                await asyncio.sleep(30)
                 
             except Exception as e:
                 log(f"❌ Error in trading loop: {e}", self.wallet_id)
@@ -486,20 +503,20 @@ class SingleWalletTrader:
             order_levels = []
             base_spread = 0.0001  # Start at 0.01% from center
             
-            # Create 14 levels on each side with gradually increasing spread
-            for level in range(14):
-                if level < 5:
-                    # Tight levels near center (0.01% - 0.1%)
-                    spread = base_spread * (level + 1) * 2
+            # Create 12 levels on each side with much wider spreads to avoid immediate fills
+            for level in range(12):
+                if level < 4:
+                    # Tight levels near center (0.05% - 0.5%) - Much wider minimum spread
+                    spread = base_spread * (level + 1) * 5  # Increased from 3 to 5
                     size_mult = 1.5 - (level * 0.05)  # Gradually decrease size
-                elif level < 10:
-                    # Medium levels (0.1% - 0.5%)
-                    spread = 0.001 + (level - 5) * 0.0008
-                    size_mult = 1.2 - ((level - 5) * 0.08)
+                elif level < 8:
+                    # Medium levels (0.5% - 1.5%) - Much wider spreads
+                    spread = 0.005 + (level - 4) * 0.0025  # Increased significantly
+                    size_mult = 1.2 - ((level - 4) * 0.08)
                 else:
-                    # Wide levels (0.5% - 2%)
-                    spread = 0.005 + (level - 10) * 0.004
-                    size_mult = 0.8 - ((level - 10) * 0.08)
+                    # Wide levels (1.5% - 4%) - Very wide spreads
+                    spread = 0.015 + (level - 8) * 0.008  # Much wider
+                    size_mult = 0.8 - ((level - 8) * 0.08)
                 
                 order_levels.append((spread, size_mult))
             
@@ -513,9 +530,9 @@ class SingleWalletTrader:
                 actual_size = order_size * Decimal(str(size_mult * size_jitter))
                 actual_size = actual_size.quantize(Decimal('0.001'))
                 
-                # Calculate prices for this level
+                # Calculate prices for this level with much larger buffer for sells
                 buy_price = Decimal(str(center_price * (1 - actual_spread)))
-                sell_price = Decimal(str(center_price * (1 + actual_spread)))
+                sell_price = Decimal(str(center_price * (1 + actual_spread + 0.005)))  # Extra 0.5% buffer for sells (was 0.1%)
                 
                 # Smart rounding based on price level for natural look
                 if buy_price > 10:
@@ -541,8 +558,8 @@ class SingleWalletTrader:
                 )
                 orders.append(buy_order)
                 
-                # Create sell order
-                sell_margin = sell_price * actual_size * margin_ratio
+                # Create sell order with potentially higher margin for shorts
+                sell_margin = sell_price * actual_size * margin_ratio * Decimal("1.5")  # 50% more margin for shorts
                 # Round margin to avoid decimal precision issues with blockchain
                 sell_margin = sell_margin.quantize(Decimal('0.01'))
                 sell_order = self.composer.derivative_order(
@@ -556,8 +573,23 @@ class SingleWalletTrader:
                     cid=None
                 )
                 orders.append(sell_order)
+                
+                # Debug: Log first few levels to verify balance and market distance
+                if level_idx < 3:  # Show first 3 levels instead of 2
+                    buy_distance = (center_price - float(buy_price)) / center_price * 100
+                    sell_distance = (float(sell_price) - center_price) / center_price * 100
+                    log(f"🔍 Level {level_idx}: BUY ${buy_price:.4f} ({buy_distance:.2f}% below) | SELL ${sell_price:.4f} ({sell_distance:.2f}% above) | Size: {actual_size}", self.wallet_id)
             
-            log(f"📖 Created beautiful orderbook with {len(orders)} staircase levels", self.wallet_id)
+            # Count buy vs sell orders for debugging
+            buy_orders = [o for o in orders if "BUY" in str(o)]
+            sell_orders = [o for o in orders if "SELL" in str(o)]
+            
+            # Calculate total margin requirements
+            total_buy_margin = sum(buy_price * actual_size * Decimal("0.1") for buy_price, actual_size in [(Decimal("12.60"), Decimal("11.0"))] * len(buy_orders))
+            total_sell_margin = sum(sell_price * actual_size * Decimal("0.1") for sell_price, actual_size in [(Decimal("12.65"), Decimal("11.0"))] * len(sell_orders))
+            
+            log(f"📖 Created beautiful orderbook with {len(orders)} orders ({len(buy_orders)} BUY, {len(sell_orders)} SELL) across {len(order_levels)} levels", self.wallet_id)
+            log(f"💰 Estimated margin - BUY: ${total_buy_margin:.2f} | SELL: ${total_sell_margin:.2f} | TOTAL: ${total_buy_margin + total_sell_margin:.2f}", self.wallet_id)
             
         except Exception as e:
             log(f"❌ Error creating beautiful orderbook for {market_symbol}: {e}", self.wallet_id)
@@ -617,6 +649,23 @@ class SingleWalletTrader:
                               response.get('txResponse', {}).get('txhash') or
                               response.get('tx_response', {}).get('txhash') or
                               'unknown')
+                    
+                    # Check for detailed transaction response
+                    tx_response = response.get('txResponse') or response.get('tx_response')
+                    if tx_response and 'logs' in tx_response:
+                        # Log any events or errors in the transaction
+                        logs = tx_response.get('logs', [])
+                        for log_entry in logs:
+                            if 'events' in log_entry:
+                                for event in log_entry['events']:
+                                    if event.get('type') == 'message' and 'action' in str(event):
+                                        continue  # Skip routine message events
+                                    elif 'error' in event.get('type', '').lower():
+                                        log(f"⚠️ Transaction event: {event}", self.wallet_id)
+                    
+                    # Check for partial failures (some orders rejected)
+                    if tx_response and tx_response.get('code', 0) != 0:
+                        log(f"⚠️ Transaction had issues - Code: {tx_response.get('code')}, Log: {tx_response.get('raw_log', 'N/A')}", self.wallet_id)
                     
                     # Check for broadcast errors in response
                     tx_response = response.get('txResponse') or response.get('tx_response') or {}
@@ -831,6 +880,9 @@ class SingleWalletTrader:
                 private_key=self.private_key,  # Pass string directly, SDK handles conversion
                 gas_price=gas_price
             )
+            
+            # Set same timeout as initialization
+            self.broadcaster.timeout_height_offset = 200
             
             log(f"✅ Broadcaster recreated with sequence: {self.sequence}", self.wallet_id)
             
@@ -1265,23 +1317,115 @@ class SingleWalletTrader:
         summary += f"{'='*60}"
         return summary
 
+def parse_arguments():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(
+        description="Single Wallet Derivative Trader - Trade on Injective Protocol derivative markets",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Run all configured markets for wallet_1
+  python derivative_trader.py wallet_1
+  
+  # Run specific markets only
+  python derivative_trader.py wallet_1 --markets INJ/USDT-PERP BTC/USDT-PERP
+  
+  # Show available markets for a wallet
+  python derivative_trader.py wallet_1 --list-markets
+        """
+    )
+    
+    parser.add_argument(
+        'wallet_id',
+        help='Wallet ID to use for trading (e.g., wallet_1, wallet_2, wallet_3)'
+    )
+    
+    parser.add_argument(
+        '--markets', '-m',
+        nargs='+',
+        help='Specific markets to trade on (space-separated). If not specified, trades on all configured markets.'
+    )
+    
+    parser.add_argument(
+        '--list-markets', '-l',
+        action='store_true',
+        help='List available markets for the specified wallet and exit'
+    )
+    
+    return parser.parse_args()
+
 async def main():
     """Main entry point"""
-    if len(sys.argv) != 2:
-        print("Usage: python trader.py <wallet_id>")
+    args = parse_arguments()
+    
+    # Create trader instance to access config
+    try:
+        trader = SingleWalletTrader(args.wallet_id, selected_markets=args.markets)
+    except ValueError as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Failed to initialize trader: {e}")
         sys.exit(1)
     
-    wallet_id = sys.argv[1]
-    trader = SingleWalletTrader(wallet_id)
+    # Handle list-markets option
+    if args.list_markets:
+        wallet_config = trader.config["wallets"][args.wallet_id]
+        all_markets = wallet_config["markets"]
+        
+        print(f"\n📊 Available markets for {args.wallet_id}:")
+        for market in all_markets:
+            market_config = trader.config["markets"][market]
+            market_type = market_config.get("type", "spot")
+            spread = market_config.get("spread_percent", 0)
+            order_size = market_config.get("order_size", 0)
+            print(f"  • {market} ({market_type}) - Spread: {spread}%, Order Size: {order_size}")
+        
+        # Show derivative markets specifically
+        derivative_markets = [m for m in all_markets if trader.config["markets"][m].get("type") == "derivative"]
+        if derivative_markets:
+            print(f"\n🎯 Derivative markets: {', '.join(derivative_markets)}")
+        else:
+            print(f"\n⚠️  No derivative markets configured for {args.wallet_id}")
+        
+        return
     
+    # Validate selected markets if provided
+    if args.markets:
+        wallet_config = trader.config["wallets"][args.wallet_id]
+        all_markets = wallet_config["markets"]
+        invalid_markets = [m for m in args.markets if m not in all_markets]
+        
+        if invalid_markets:
+            print(f"❌ Invalid markets: {invalid_markets}")
+            print(f"Available markets for {args.wallet_id}: {all_markets}")
+            sys.exit(1)
+        
+        # Check if any selected markets are derivatives
+        derivative_markets = [m for m in args.markets if trader.config["markets"][m].get("type") == "derivative"]
+        if not derivative_markets:
+            print(f"⚠️  Warning: None of the selected markets are derivative markets: {args.markets}")
+            print("This trader is optimized for derivative trading.")
+            response = input("Continue anyway? (y/N): ")
+            if response.lower() != 'y':
+                sys.exit(0)
+    
+    # Start trading
     try:
+        print(f"🚀 Starting derivative trader for {args.wallet_id}")
+        if args.markets:
+            print(f"🎯 Selected markets: {args.markets}")
+        else:
+            wallet_config = trader.config["wallets"][args.wallet_id]
+            print(f"🎯 All configured markets: {wallet_config['markets']}")
+        
         await trader.run()
     except KeyboardInterrupt:
-        log(f"🛑 {wallet_id} trader stopped by user", wallet_id)
+        log(f"🛑 {args.wallet_id} trader stopped by user", args.wallet_id)
         # Show trading summary
         summary = trader.get_trading_summary()
         print(summary)
-        log(f"📊 Trading session ended for {wallet_id}", wallet_id)
+        log(f"📊 Trading session ended for {args.wallet_id}", args.wallet_id)
 
 if __name__ == "__main__":
     asyncio.run(main())

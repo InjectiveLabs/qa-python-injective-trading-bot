@@ -10,12 +10,14 @@ import os
 import subprocess
 import time
 import signal
+import secrets
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 
 # Add parent directory to path to import from utils
@@ -25,6 +27,31 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from utils.secure_wallet_loader import load_wallets_from_env
 
 app = FastAPI(title="Trading Bot Manager")
+security = HTTPBasic()
+
+# Load authentication credentials from environment variables
+# Default: admin/admin (change via .env: WEB_AUTH_USERNAME and WEB_AUTH_PASSWORD)
+AUTH_USERNAME = os.getenv("WEB_AUTH_USERNAME", "admin")
+AUTH_PASSWORD = os.getenv("WEB_AUTH_PASSWORD", "admin")
+
+def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
+    """
+    Verify HTTP Basic Authentication credentials.
+    
+    Browser will cache credentials after first login, so user only sees
+    the popup ONCE when they first access the dashboard.
+    """
+    correct_username = secrets.compare_digest(credentials.username, AUTH_USERNAME)
+    correct_password = secrets.compare_digest(credentials.password, AUTH_PASSWORD)
+    
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    
+    return credentials.username
 
 # Request models
 class StartBotRequest(BaseModel):
@@ -40,8 +67,8 @@ class StopBotRequest(BaseModel):
 running_bots = {}  # wallet_id -> bot_info
 
 @app.get("/")
-async def get_dashboard():
-    """Serve the main dashboard page"""
+async def get_dashboard(username: str = Depends(verify_credentials)):
+    """Serve the main dashboard page - protected by HTTP Basic Auth"""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     static_file_path = os.path.join(script_dir, "static", "index.html")
     
@@ -49,7 +76,7 @@ async def get_dashboard():
         return HTMLResponse(f.read())
 
 @app.get("/static/{file_path:path}")
-async def static_files(file_path: str):
+async def static_files(file_path: str, username: str = Depends(verify_credentials)):
     """Serve static files"""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     static_file_path = os.path.join(script_dir, "static", file_path)
@@ -60,7 +87,7 @@ async def static_files(file_path: str):
     return FileResponse(static_file_path)
 
 @app.get("/api/wallets")
-async def get_wallets():
+async def get_wallets(username: str = Depends(verify_credentials)):
     """Get available wallets"""
     try:
         wallets_config = load_wallets_from_env()
@@ -79,7 +106,7 @@ async def get_wallets():
         return {"error": str(e)}
 
 @app.get("/api/markets")
-async def get_markets():
+async def get_markets(username: str = Depends(verify_credentials)):
     """Get available markets organized by type"""
     try:
         # Load trader config to get market information
@@ -113,7 +140,7 @@ async def get_markets():
         return {"error": str(e)}
 
 @app.get("/api/debug/running-bots")
-async def debug_running_bots():
+async def debug_running_bots(username: str = Depends(verify_credentials)):
     """Debug endpoint to check running bots data"""
     return {
         "running_bots_dict": running_bots,
@@ -122,7 +149,7 @@ async def debug_running_bots():
     }
 
 @app.get("/api/running-bots")
-async def get_running_bots():
+async def get_running_bots(username: str = Depends(verify_credentials)):
     """Get currently running bots with enhanced information"""
     try:
         # Update running bots status by checking processes
@@ -175,7 +202,7 @@ async def get_running_bots():
         return {"error": str(e)}
 
 @app.post("/api/start-bot")
-async def start_bot(request: StartBotRequest):
+async def start_bot(request: StartBotRequest, username: str = Depends(verify_credentials)):
     """Start a trading bot"""
     try:
         # Check if wallet is already in use
@@ -234,7 +261,7 @@ async def start_bot(request: StartBotRequest):
         return {"success": False, "error": str(e)}
 
 @app.post("/api/stop-bot")
-async def stop_bot(request: StopBotRequest):
+async def stop_bot(request: StopBotRequest, username: str = Depends(verify_credentials)):
     """Stop a specific trading bot"""
     try:
         if request.wallet_id not in running_bots:
@@ -275,7 +302,7 @@ async def stop_bot(request: StopBotRequest):
         return {"success": False, "error": str(e)}
 
 @app.get("/api/bot-logs/{wallet_id}/{bot_type}")
-async def get_bot_logs(wallet_id: str, bot_type: str):
+async def get_bot_logs(wallet_id: str, bot_type: str, username: str = Depends(verify_credentials)):
     """Get logs for a specific bot"""
     try:
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -335,7 +362,7 @@ async def get_bot_logs(wallet_id: str, bot_type: str):
         return {"error": str(e)}
 
 @app.get("/api/recent-logs")
-async def get_recent_logs():
+async def get_recent_logs(username: str = Depends(verify_credentials)):
     """Get recent log entries from all log files"""
     try:
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -644,6 +671,22 @@ async def update_running_bots_status():
 
 if __name__ == "__main__":
     import uvicorn
-    print("Starting Trading Bot Manager...")
-    print("Access the dashboard at: http://localhost:8000")
+    print("=" * 70)
+    print("🚀 Trading Bot Manager - Starting...")
+    print("=" * 70)
+    print()
+    print(f"📊 Dashboard URL: http://localhost:8000")
+    print()
+    print("🔐 Authentication: HTTP Basic Auth")
+    print(f"   👤 Username: {AUTH_USERNAME}")
+    print(f"   🔑 Password: {'*' * len(AUTH_PASSWORD)}")
+    print()
+    if AUTH_USERNAME == "admin" and AUTH_PASSWORD == "admin":
+        print("⚠️  WARNING: Using default credentials!")
+        print("   Set WEB_AUTH_USERNAME and WEB_AUTH_PASSWORD in .env file")
+        print()
+    print("ℹ️  Browser will show login popup ONCE when you first open the page.")
+    print("   After login, credentials are cached - you won't see popup again!")
+    print()
+    print("=" * 70)
     uvicorn.run(app, host="0.0.0.0", port=8000)

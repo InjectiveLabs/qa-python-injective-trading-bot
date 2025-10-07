@@ -1,644 +1,527 @@
-# 🤖 QA Injective MM Bot | Professional Market Making System 🚀
+# QA Injective Trading Bot - Testnet Liquidity Provision System
 
-> **"Professional-grade market making bot for Injective Protocol"** 💎
+> **Professional liquidity provision for Injective Protocol testnet markets**
 
-A sophisticated multi-wallet market making system for Injective Protocol that provides real-time price correction between testnet and mainnet, complete with a modern web dashboard for monitoring and control.
+A sophisticated single-wallet trading system that mirrors mainnet prices on testnet, creating realistic orderbooks and sufficient liquidity depth for paper trading. This bot ensures testnet prices closely match mainnet for an authentic trading experience.
 
-## 🎯 What This Bad Boy Does
+## 🎯 Mission
 
-Think of this as your **personal army of trading bots** that:
-- 🔥 **Fights price discrepancies** between testnet and mainnet like a crypto ninja
-- 💰 **Makes money** by correcting testnet prices to match real market prices  
-- 🎪 **Creates rich orderbooks** with randomized orders that look totally natural
-- ⚡ **Runs 3 wallets in parallel** because one wallet is for peasants, three is for legends
-- 🛡️ **Never gets rekt** with intelligent sequence management and cooldowns
+**Make Injective testnet indistinguishable from mainnet for paper traders.**
 
-## 🌟 Features That'll Make You Say "WAGMI"
+This bot provides:
+- **Price accuracy**: Testnet prices mirror mainnet prices in real-time
+- **Deep liquidity**: Professional-grade orderbook depth across all price levels
+- **Realistic conditions**: Paper traders experience mainnet-quality markets
+- **Infrastructure support**: Essential testnet ecosystem infrastructure
 
-### 🎮 Core Trading Features
-- **🔥 Multi-Wallet Parallel Execution** - 3 wallets trading simultaneously like synchronized swimmers
-- **📊 Real-Time Price Correction** - Fixes testnet prices faster than you can say "diamond hands"
-- **🎲 Rich Orderbook Creation** - Places 0.1-10.0 INJ orders across multiple price levels (looks totally organic)
-- **🛡️ Sequence Mismatch Protection** - Smart cooldown system that prevents your bot from having a meltdown
-- **⚡ Instant Shutdown** - Ctrl+C works immediately (no more waiting for your bot to finish its coffee break)
-
-### 🧠 Market Intelligence
-- **📈 Live Price Monitoring** - Compares mainnet vs testnet prices in real-time
-- **🎯 Price Movement Tracking** - Shows you exactly which direction prices need to go (UP/DOWN arrows)
-- **🌐 Mainnet Price Integration** - Gets real market prices directly from Injective mainnet
-- **🎪 Dynamic Order Sizing** - Randomizes order sizes so your bot doesn't look like a robot
-
-### 🔒 Security & Risk Management
-- **🔐 Secure Wallet Loading** - Private keys stored in `.env` files (not in plain text like a noob)
-- **⏰ Cooldown System** - 10-second chill period when sequence mismatches happen
-- **✅ Order Validation** - Comprehensive error handling (your bot won't crash and burn)
-- **📊 Balance Monitoring** - Tracks wallet balances and sequence numbers in real-time
-- **🔄 Graceful Error Recovery** - Automatically refreshes sequences and retries failed orders
+This is infrastructure building, not profit-focused trading. The goal is creating a realistic testnet environment for the Injective community.
 
 ## 🏗️ System Architecture
 
-### 🎯 High-Level Architecture
-
-```mermaid
-graph TB
-    subgraph "🌐 Web Dashboard"
-        UI[📱 Web Interface]
-        API[🚀 FastAPI Backend]
-        WS[⚡ WebSocket Server]
-    end
-    
-    subgraph "🤖 Trading Engine"
-        MWT[📱 Multi-Wallet Trader]
-        WT1[🎯 Wallet 1 Trader]
-        WT2[🎯 Wallet 2 Trader]
-        WT3[🎯 Wallet 3 Trader]
-    end
-    
-    subgraph "🌐 Injective Networks"
-        TN[🧪 Testnet]
-        MN[🌐 Mainnet]
-    end
-    
-    subgraph "📊 Data Layer"
-        CONFIG[⚙️ Configuration]
-        LOGS[📝 Logs]
-        DATA[📊 Market Data]
-    end
-    
-    UI --> API
-    API --> WS
-    WS --> MWT
-    MWT --> WT1
-    MWT --> WT2
-    MWT --> WT3
-    
-    WT1 --> TN
-    WT2 --> TN
-    WT3 --> TN
-    
-    MWT --> MN
-    
-    MWT --> CONFIG
-    MWT --> LOGS
-    MWT --> DATA
-    
-    API --> CONFIG
-    API --> LOGS
-```
-
-### 🔄 Trading Flow Diagram
-
-```mermaid
-sequenceDiagram
-    participant W as 🌐 Web Dashboard
-    participant B as 🤖 Bot Engine
-    participant T as 🧪 Testnet
-    participant M as 🌐 Mainnet
-    
-    W->>B: Start Bot Command
-    B->>T: Connect to Testnet
-    B->>M: Connect to Mainnet
-    
-    loop Trading Cycle
-        B->>T: Get Testnet Price
-        B->>M: Get Mainnet Price
-        B->>B: Calculate Price Difference
-        
-        alt Price Difference > Threshold
-            B->>T: Place Correction Orders
-            B->>W: Update Status & Logs
-        else Price Difference < Threshold
-            B->>W: Update Status (Monitoring)
-        end
-        
-        B->>B: Wait 10 seconds
-    end
-    
-    W->>B: Stop Bot Command
-    B->>T: Cancel All Orders
-    B->>W: Update Status (Stopped)
-```
-
-### 🏗️ Component Architecture
+### Core Components
 
 ```
-🚀 QA Injective MM Bot System
-├── 🌐 Web Dashboard (web/)
-│   ├── 📱 Frontend
-│   │   ├── index.html          # Main dashboard UI
-│   │   ├── script.js           # Real-time JavaScript logic
-│   │   └── styles.css          # Tailwind CSS styling
-│   │
-│   ├── 🚀 Backend
-│   │   ├── app.py              # FastAPI application
-│   │   ├── requirements.txt    # Python dependencies
-│   │   └── static/             # Static web assets
-│   │
-│   └── 🔧 Features
-│       ├── ⚡ WebSocket real-time updates
-│       ├── 📊 Live bot status monitoring
-│       ├── 💰 Wallet balance tracking
-│       ├── 🎛️ Bot start/stop controls
-│       └── 📝 Live activity feed
-│
-├── 🤖 Trading Engine (scripts/)
-│   ├── 📱 multi_wallet_trader.py    # Main trading system
-│   │   ├── 🎯 WalletTrader Class    # Individual wallet management
-│   │   ├── ⚡ Parallel Execution     # Multi-wallet coordination
-│   │   ├── 📊 Price Correction Logic # Mainnet/testnet alignment
-│   │   └── 🎪 Rich Orderbook Creation # Randomized orders
-│   │
-│   └── 🛑 batch_cancel_orders.py    # Emergency order cancellation
-│       ├── 🔥 Multi-Wallet Support  # Cancel from all wallets
-│       ├── 📈 Spot & Derivative     # Support both market types
-│       └── ⚡ Batch Operations      # Efficient bulk cancellation
-│
-├── ⚙️ Configuration (config/)
-│   ├── markets_config.json          # Market definitions & settings
-│   └── README.md                    # Configuration documentation
-│
-├── 📊 Data Layer (data/)
-│   ├── 🌐 mainnet_*_market_data.json # Real market data
-│   ├── 🧪 testnet_*_market_data.json # Testnet market data
-│   └── 📋 *_comparison_report.txt    # Market analysis reports
-│
-├── 🛠️ Utilities (utils/)
-│   ├── 📝 logger.py                  # Centralized logging
-│   ├── 🔒 secure_wallet_loader.py   # Secure wallet management
-│   ├── 📊 market_comparison_unified.py # Market data analysis
-│   └── 💰 balance_checker.py        # Wallet balance monitoring
-│
-└── 🔐 Security
-    ├── .env                         # Encrypted wallet keys
-    ├── env.example                  # Configuration template
-    └── logs/                        # Secure log storage
+Trading Bots (Single-Wallet Architecture)
+├── derivative_trader.py    # Enhanced derivative market trader
+├── spot_trader.py          # Enhanced spot market trader  
+└── trader.py              # Original unified trader (legacy)
+
+Configuration
+├── config/trader_config.json   # Market definitions & parameters
+└── .env                        # Wallet private keys (secure)
+
+Management Tools
+├── scripts/manual_order_canceller.py  # Emergency order cancellation
+├── scripts/position_closer.py         # Position management
+└── utils/*                            # Balance checking, health monitoring
+
+Web Interface (Optional)
+└── web/app.py                 # Trading bot management dashboard
 ```
 
-## 🌐 Web Dashboard
+### Trading Strategy
 
-The QA Injective MM Bot includes a modern web dashboard for real-time monitoring and control:
+The bots use an intelligent **two-phase strategy** optimized for price convergence:
 
-### 🎮 Dashboard Features
-- **📊 Real-time Bot Status** - Live monitoring of bot state (Running/Stopped)
-- **💰 Wallet Balance Tracking** - Real-time balance updates for all wallets
-- **📈 Market Data Display** - Current market information and trading pairs
-- **📝 Live Activity Feed** - Real-time trading logs and system events
-- **🎛️ Bot Controls** - Start/Stop bot functionality
-- **🌐 Network Status** - Shows which network the bot is running on (Testnet/Mainnet)
-- **📱 Responsive Design** - Works on desktop, tablet, and mobile devices
+#### Phase 1: Market Moving (Large Price Gaps >15%)
+- **Goal**: Quickly move price toward mainnet
+- **Action**: Aggressive directional orders with larger sizes
+- **Focus**: Price convergence speed over orderbook aesthetics
 
-### 🚀 Launching the Web Dashboard
+#### Phase 2: Orderbook Building (Small Price Gaps <5%)
+- **Goal**: Create professional-grade orderbook depth
+- **Action**: Build beautiful staircase orderbook with 28-66 orders
+- **Focus**: Realistic liquidity depth and natural appearance
 
-1. **Start the Web Server**:
-```bash
-cd web
-python app.py
-```
+#### Phase 3: Maintenance (Price Aligned)
+- **Goal**: Keep orderbook fresh and responsive
+- **Action**: Gradual updates with depth stage cycling
+- **Focus**: Maintain quality without flooding the book
 
-2. **Access the Dashboard**:
-- Open your browser and go to: `http://localhost:8000`
-- The dashboard will automatically connect via WebSocket for real-time updates
+## 🚀 Quick Start
 
-3. **Dashboard Controls**:
-- **Start Bot**: Click the green "Start Bot" button to begin trading
-- **Stop Bot**: Click the red "Stop Bot" button to halt all trading
-- **Refresh Balances**: Manually refresh wallet balance data
-- **View Logs**: Access full trading logs in a modal window
+### Prerequisites
+- **Python 3.8+**
+- **Injective testnet wallet(s)** with INJ tokens (get from faucet)
+- **Virtual environment** (recommended)
 
-### 🔧 Web Interface Architecture
+### Installation
 
-```
-🌐 Web Dashboard
-├── 📱 Frontend (HTML/CSS/JavaScript)
-│   ├── 🎨 Modern UI with Tailwind CSS
-│   ├── ⚡ Real-time WebSocket updates
-│   ├── 📊 Interactive charts and status indicators
-│   └── 📱 Responsive mobile design
-│
-├── 🚀 Backend (FastAPI)
-│   ├── 🔌 REST API endpoints
-│   ├── 🌐 WebSocket connections
-│   ├── 📊 Real-time data streaming
-│   └── 🎛️ Bot control interface
-│
-└── 📊 Data Integration
-    ├── 📈 Live market data
-    ├── 💰 Wallet balance tracking
-    ├── 📝 Trading log streaming
-    └── ⚙️ Configuration management
-```
-
-## 🚀 Complete System Launch
-
-### 🎯 Two Ways to Run the Bot
-
-#### Option 1: 🌐 Web Dashboard (Recommended)
-```bash
-# 1. Start the web dashboard
-cd web
-python app.py
-
-# 2. Open browser to http://localhost:8000
-# 3. Use the web interface to start/stop the bot
-# 4. Monitor real-time status, balances, and logs
-```
-
-#### Option 2: 🤖 Command Line Only
-```bash
-# 1. Start the trading bot directly
-python scripts/multi_wallet_trader.py
-
-# 2. Monitor via console output and log files
-# 3. Use Ctrl+C to stop
-```
-
-### 📋 Prerequisites
-- **Python 3.8+** (because we're not living in the stone age)
-- **Injective testnet wallets** with INJ tokens (get them from the faucet)
-- **Virtual environment** (keeps your system clean like a good crypto hygiene)
-
-### 🛠️ Installation (The Setup of Champions)
-
-1. **Clone and Setup** 🏗️
+1. **Clone and setup**:
 ```bash
 git clone <repository-url>
 cd qa-python-injective-trading-bot
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt  # ✨ All dependencies in one file!
+pip install -r requirements.txt
 ```
 
-> 📝 **Note**: We use a single `requirements.txt` file for all components (web dashboard, trading bots, and utilities). No more juggling multiple dependency files!
-
-2. **Configure Your Wallets** 🔐
+2. **Configure wallets**:
 ```bash
 cp env.example .env
-# Edit .env with your wallet private keys (keep them secret!)
+# Edit .env with your wallet private keys
 ```
 
-3. **Set Up Your Wallet Configuration** 💰
-Edit your `.env` file with your wallet details:
+Your `.env` should look like:
 ```bash
-# Wallet 1 - The Primary Market Maker
-WALLET_1_PRIVATE_KEY=your_private_key_1_here
+# Wallet 1 - Primary Market Maker
+WALLET_1_PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE
 WALLET_1_NAME=Primary Market Maker
 WALLET_1_ENABLED=true
-WALLET_1_MAX_ORDERS=5
-WALLET_1_BALANCE_THRESHOLD=100
 
-# Wallet 2 - The QA Market Maker  
-WALLET_2_PRIVATE_KEY=your_private_key_2_here
+# Wallet 2 - QA Market Maker  
+WALLET_2_PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE
 WALLET_2_NAME=QA Market Maker
 WALLET_2_ENABLED=true
-WALLET_2_MAX_ORDERS=5
-WALLET_2_BALANCE_THRESHOLD=100
 
-# Wallet 3 - The QA Market Taker
-WALLET_3_PRIVATE_KEY=your_private_key_3_here
+# Wallet 3 - QA Market Taker
+WALLET_3_PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE
 WALLET_3_NAME=QA Market Taker
 WALLET_3_ENABLED=true
-WALLET_3_MAX_ORDERS=5
-WALLET_3_BALANCE_THRESHOLD=100
 ```
 
-4. **Configure Markets** 📊
-Edit `config/markets_config.json`:
+3. **Configure markets** (optional):
+
+Edit `config/trader_config.json` to enable/disable markets or adjust parameters.
+
+### Running the Bots
+
+#### Derivative Trading
+```bash
+# Trade all enabled derivative markets
+python derivative_trader.py wallet_1
+
+# Trade specific derivative market
+python derivative_trader.py wallet_1 --markets INJ/USDT-PERP
+
+# List available markets
+python derivative_trader.py wallet_1 --list-markets
+```
+
+#### Spot Trading
+```bash
+# Trade all enabled spot markets
+python spot_trader.py wallet1
+
+# Trade specific spot market
+python spot_trader.py wallet1 INJ/USDT
+python spot_trader.py wallet1 stINJ/INJ
+```
+
+#### Multiple Wallets (Parallel Execution)
+Run separate terminal sessions for each wallet:
+```bash
+# Terminal 1
+python derivative_trader.py wallet_1
+
+# Terminal 2  
+python derivative_trader.py wallet_2
+
+# Terminal 3
+python spot_trader.py wallet3
+```
+
+## 🌐 Web Dashboard (Optional)
+
+A modern web interface for monitoring and controlling trading bots.
+
+### Launch Dashboard
+```bash
+cd web
+python app.py
+# Open browser to http://localhost:8000
+```
+
+### Features
+- Real-time bot status monitoring
+- Wallet balance tracking
+- Live activity feed
+- Start/stop bot controls
+- Market information display
+
+## 📊 How It Works
+
+### Price Discovery Flow
+
+```
+1. Fetch Mainnet Price → Get real market price from Injective mainnet
+2. Fetch Testnet Price → Get current testnet price
+3. Calculate Gap → Determine percentage difference
+4. Select Strategy → Choose phase based on gap size
+5. Execute Orders → Place/cancel orders in batch transaction
+6. Wait & Repeat → 15-second cycle, continuous operation
+```
+
+### Orderbook Building Example
+
+When building depth, the bot creates natural-looking orderbooks:
+
+```
+Price      Size     Type
+24.5654    16.3     Tight (0.01% from center)
+24.5623    19.8     Tight
+24.5592    15.7     Tight
+24.5561    21.4     Tight
+24.5530    18.2     Tight
+
+24.5499    23.6     Medium (0.1% from center)
+24.5468    27.1     Medium
+24.5437    22.9     Medium
+24.5406    25.8     Medium
+24.5375    20.4     Medium
+
+--- MAINNET PRICE: $24.5623 ---
+
+24.5685    24.7     Medium
+24.5716    28.3     Medium
+24.5747    23.1     Medium
+...
+```
+
+**Result**: 28-66 orders per market creating smooth, professional depth.
+
+## ⚙️ Configuration
+
+### Market Configuration
+
+Edit `config/trader_config.json`:
+
 ```json
 {
+  "wallets": {
+    "wallet_1": {
+      "markets": ["INJ/USDT", "stINJ/INJ", "INJ/USDT-PERP"],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    }
+  },
   "markets": {
     "INJ/USDT": {
       "testnet_market_id": "0x0611780ba69656949525013d947713300f56c37b6175e02f26bffa495c3208fe",
       "mainnet_market_id": "0xa508cb32923323679f29a032c70342c147c17d0145625922b0ef22e955c844c0",
-      "enabled": true,
       "type": "spot",
-      "deviation_threshold": 5.0
+      "spread_percent": 0.5,
+      "order_size": 15
+    },
+    "INJ/USDT-PERP": {
+      "testnet_market_id": "0x17ef48032cb24375ba7c2e39f384e56433bcab20cbee9a7357e4cba2eb00abe6",
+      "mainnet_market_id": "0x9b9980167ecc3645ff1a5517886652d94a0825e54a77d2057cbbe3ebee015963",
+      "type": "derivative",
+      "spread_percent": 0.3,
+      "order_size": 8
     }
   }
 }
 ```
 
-5. **Launch the Bot** 🚀
+### Key Parameters
+- `type`: "spot" or "derivative"
+- `spread_percent`: Base spread for orders
+- `order_size`: Base order size
+- `testnet_market_id`: Market ID on testnet
+- `mainnet_market_id`: Market ID on mainnet (for price reference)
+
+## 🛠️ Management Tools
+
+### Emergency Order Cancellation
 ```bash
-# Start multi-wallet trading (the main event!)
-python3 scripts/multi_wallet_trader.py
-
-# Cancel all orders (emergency stop)
-python3 scripts/batch_cancel_orders.py
+python scripts/manual_order_canceller.py --wallet all --market all
 ```
 
-## 🎮 How It Works (The Magic Behind the Curtain)
-
-### 🔄 Trading Logic Flow
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    🤖 QA Injective MM Bot Logic                │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   🧪 Testnet │    │   🌐 Mainnet │    │   📊 Bot Logic │
-│   Prices    │    │   Prices    │    │   Engine    │
-└─────────────┘    └─────────────┘    └─────────────┘
-       │                   │                   │
-       │ Get Testnet Price │                   │
-       ├──────────────────►│                   │
-       │                   │ Get Mainnet Price │
-       │                   ├──────────────────►│
-       │                   │                   │
-       │                   │                   │ Calculate
-       │                   │                   │ Price Diff
-       │                   │                   │
-       │                   │                   │
-       │                   │                   │ Price Diff
-       │                   │                   │ > 2%?
-       │                   │                   │
-       │                   │                   │ ┌─────────┐
-       │                   │                   │ │   YES   │
-       │                   │                   │ └─────────┘
-       │                   │                   │      │
-       │                   │                   │      │
-       │                   │                   │      ▼
-       │                   │                   │ ┌─────────────┐
-       │                   │                   │ │ 🎪 Place    │
-       │                   │                   │ │ Orders to   │
-       │                   │                   │ │ Correct     │
-       │                   │                   │ │ Price       │
-       │                   │                   │ └─────────────┘
-       │                   │                   │      │
-       │                   │                   │      │
-       │                   │                   │      ▼
-       │                   │                   │ ┌─────────────┐
-       │                   │                   │ │ ⏰ Wait 10s │
-       │                   │                   │ │ & Repeat    │
-       │                   │                   │ └─────────────┘
-       │                   │                   │
-       │                   │                   │ ┌─────────┐
-       │                   │                   │ │   NO    │
-       │                   │                   │ └─────────┘
-       │                   │                   │      │
-       │                   │                   │      │
-       │                   │                   │      ▼
-       │                   │                   │ ┌─────────────┐
-       │                   │                   │ │ ⏸️ Monitor  │
-       │                   │                   │ │ Only        │
-       │                   │                   │ └─────────────┘
-       │                   │                   │      │
-       │                   │                   │      │
-       │                   │                   │      ▼
-       │                   │                   │ ┌─────────────┐
-       │                   │                   │ │ ⏰ Wait 10s │
-       │                   │                   │ │ & Repeat    │
-       │                   │                   │ └─────────────┘
-```
-
-### 🎯 Multi-Wallet Parallel Execution
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    🎯 Multi-Wallet Coordination                │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│  💰 Wallet 1 │    │  💰 Wallet 2 │    │  💰 Wallet 3 │
-│  (Primary)   │    │  (QA Maker)  │    │  (QA Taker)  │
-└─────────────┘    └─────────────┘    └─────────────┘
-       │                   │                   │
-       │                   │                   │
-       ▼                   ▼                   ▼
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│ 🎯 Trader 1  │    │ 🎯 Trader 2  │    │ 🎯 Trader 3  │
-│ Thread      │    │ Thread      │    │ Thread      │
-└─────────────┘    └─────────────┘    └─────────────┘
-       │                   │                   │
-       │                   │                   │
-       ▼                   ▼                   ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    🧪 Injective Testnet                        │
-│                                                                 │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
-│  │ INJ/USDT    │  │ stINJ/INJ   │  │ INJ/USDT-   │            │
-│  │ Market      │  │ Market      │  │ PERP Market │            │
-│  └─────────────┘  └─────────────┘  └─────────────┘            │
-│                                                                 │
-│  Each wallet places orders on ALL markets simultaneously       │
-│  creating a rich, natural-looking orderbook                    │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### 🔄 Trading Cycle
-1. **📊 Price Check** - Bot checks testnet vs mainnet prices
-2. **🎯 Decision Time** - If price difference > 2%, it's time to make money!
-3. **🎪 Order Placement** - Creates rich orderbook with randomized orders
-4. **⏰ Wait & Repeat** - 10-second cooldown, then repeat the cycle
-
-### 💰 Price Correction Logic
-```
-Testnet Price: $12.8180
-Mainnet Price: $12.6645
-Difference: 1.21% (within 2% threshold)
-Action: ⏸️ Monitoring only (no trades needed)
-
-Testnet Price: $13.5000  
-Mainnet Price: $12.6645
-Difference: 6.58% (above 2% threshold)
-Action: 🚀 PLACE ORDERS TO CORRECT PRICE!
-```
-
-### 🎲 Order Sizing (The Art of Looking Natural)
-- **Range**: 0.1 to 10.0 INJ per order
-- **Options**: 23 different size variations
-- **Strategy**: Randomized sizes to avoid detection
-- **Result**: Orderbook that looks totally organic
-
-## 📊 Market Data Management
-
-### 🔍 Market Comparison Tool
-Compare testnet vs mainnet market data:
+### Position Closing
 ```bash
-# Compare all markets automatically
-python3 utils/market_comparison_unified.py --compare-all
-
-# Compare specific markets
-python3 utils/market_comparison_unified.py \
-  --testnet data/testnet_spot_market_data.json \
-  --mainnet data/mainnet_spot_market_data.json \
-  --output my_report.txt
+python scripts/position_closer.py
 ```
 
-### 📁 Data Directory Structure
-```
-data/
-├── 🌐 mainnet_derivative_market_data.json
-├── 🌐 mainnet_spot_market_data.json
-├── 🧪 testnet_derivative_market_data.json
-├── 🧪 testnet_spot_market_data.json
-├── 📋 derivative_market_data_comparison_report.txt
-└── 📋 spot_market_data_comparison_report.txt
-```
-
-## ⚙️ Trading Parameters (The Settings of Success)
-
-### 🎯 Order Sizing
-- **Range**: 0.1 to 10.0 INJ per order
-- **Randomization**: 23 different size options
-- **Distribution**: Natural-looking orderbook depth
-- **Strategy**: Avoid looking like a bot
-
-### 📈 Price Levels
-- **BUY Orders**: +0.1% to +1.0% above current price
-- **SELL Orders**: -0.1% to -1.0% below current price
-- **Correction Threshold**: 2% price difference triggers action
-- **Market-Specific Thresholds**: Each market can have its own threshold
-
-### ⏰ Timing
-- **Order Delay**: 5 seconds between orders
-- **Cooldown**: 10 seconds when sequence mismatches occur
-- **Cycle Interval**: 10 seconds between trading cycles
-- **Sequence Refresh**: Automatic sequence synchronization
-
-## 🛠️ Development (For the Builders)
-
-### 📁 Project Structure
-```
-├── 📱 scripts/                   # Trading scripts
-│   ├── multi_wallet_trader.py    # Main trading system
-│   └── batch_cancel_orders.py    # Order management utility
-├── ⚙️ config/                    # Configuration files
-│   ├── markets_config.json       # Market configuration
-│   └── README.md                 # Config documentation
-├── 📊 data/                      # Market data storage
-│   ├── mainnet_*_market_data.json
-│   ├── testnet_*_market_data.json
-│   └── *_comparison_report.txt
-├── 🛠️ utils/                     # Essential utilities
-│   ├── logger.py                 # Logging functionality
-│   ├── secure_wallet_loader.py   # Secure wallet configuration
-│   └── market_comparison_unified.py # Market comparison tool
-├── 🔒 .env                       # Your secret wallet keys
-├── 📋 env.example                # Template for .env
-└── 🐍 venv/                      # Virtual environment
-```
-
-### 🔧 Adding New Features
-- **New Trading Strategies**: Extend the WalletTrader class
-- **Additional Markets**: Add new entries to markets_config.json
-- **Enhanced Logging**: Customize the logger utility
-- **Market Analysis**: Use the comparison tool for insights
-
-## 🚨 Important Notes (Read This or Get Rekt)
-
-### 🧪 Testnet Only
-- This bot is configured for Injective **testnet** only
-- Use testnet wallets and tokens (free money!)
-- Never use mainnet private keys (unless you want to lose real money)
-- Testnet tokens are free from the faucet
-
-### ⚠️ Risk Disclaimer
-- This is experimental software (use at your own risk)
-- Start with small amounts (don't go all-in on your first trade)
-- Monitor the bot continuously (don't just set it and forget it)
-- Test thoroughly before using with real money
-
-### 📊 Performance Stats
-- **Order Success Rate**: ~95% (some timeout errors are normal)
-- **Price Impact**: Can move prices 15-30% per cycle
-- **Sequence Conflicts**: Rare with current timing settings
-- **Resource Usage**: Low CPU/memory footprint
-- **Transaction Hash Logging**: ✅ All trades are tracked with blockchain hashes
-
-## 🔮 Future Enhancements (The Roadmap to Glory)
-
-### 🚀 Planned Features
-- **🌐 Web Dashboard**: Real-time monitoring and control interface
-- **📈 Perpetual Trading**: Support for derivatives markets
-- **🛡️ Risk Management**: Position limits and stop-loss mechanisms
-- **📊 Performance Analytics**: Detailed P&L and success rate tracking
-- **🎯 Multi-Market Support**: Trade multiple assets simultaneously
-- **🤖 AI-Powered Strategies**: Machine learning for better price predictions
-
-### 🏗️ Clean Architecture
-- **📱 Standalone Scripts**: Self-contained trading functionality
-- **🧩 Modular Design**: Easy to extend and modify
-- **🎯 Focused Purpose**: Single responsibility per component
-- **📦 Minimal Dependencies**: Only essential libraries
-
-## 🆘 Troubleshooting (When Things Go Wrong)
-
-### 🔧 Common Issues
-1. **"No wallets found"** - Check your `.env` file has the right format
-2. **"Sequence mismatch"** - Bot will auto-retry, just wait
-3. **"Mainnet price failed"** - Network issue, bot will retry
-4. **"Ctrl+C not working"** - Fixed! Now works immediately
-
-### 📝 Logs
-- **Console Output**: Real-time trading activity
-- **Log Files**: `logs/trading.log` with full history
-- **Log Rotation**: Automatic 10MB rotation
-- **Transaction Hashes**: All trades logged with blockchain hashes
-
-## 📞 Support (We Got Your Back)
-
-For issues, questions, or contributions:
-- 📖 Check the configuration files for customization options
-- 👀 Monitor the console output for detailed error messages
-- 🔍 Use the market comparison tool for data analysis
-- ⚙️ Review the trading parameters for optimization
-- 🐛 Check the logs for detailed error information
-
-## 🎉 Success Stories
-
-> *"This bot made me more money in testnet than my real trading account"* - Anonymous Crypto Enthusiast
-
-> *"Finally, a bot that doesn't crash when I press Ctrl+C"* - Satisfied User
-
-> *"The transaction hash logging is so clean, I can track every trade"* - OCD Trader
-
-## 📚 Quick Reference
-
-### 🚀 Essential Commands
+### Balance Checking
 ```bash
-# Start web dashboard
-cd web && python app.py
+python utils/balance_checker.py wallet_1
+```
 
-# Start bot directly
-python scripts/multi_wallet_trader.py
+### Health Monitoring
+```bash
+# Check testnet status
+python utils/health_checker.py
 
-# Cancel all orders
-python scripts/batch_cancel_orders.py
+# Check mainnet status
+python utils/health_checker.py --network mainnet
+```
 
-# Compare market data
+### Market Comparison
+```bash
+# Compare all markets (spot + derivative)
 python utils/market_comparison_unified.py --compare-all
+
+# Compare specific market type
+python utils/market_comparison_unified.py \
+  --testnet data/testnet_spot_market_data.json \
+  --mainnet data/mainnet_spot_market_data.json
 ```
 
-### 🌐 Web Dashboard URLs
-- **Main Dashboard**: `http://localhost:8000`
-- **API Status**: `http://localhost:8000/api/status`
-- **Bot Control**: `http://localhost:8000/api/control`
-- **WebSocket**: `ws://localhost:8000/ws`
+## 📊 Performance & Features
 
-### 📁 Key Files
-- **Bot Script**: `scripts/multi_wallet_trader.py`
-- **Web App**: `web/app.py`
-- **Configuration**: `config/markets_config.json`
-- **Environment**: `.env`
-- **Logs**: `logs/trading.log`
+### Orderbook Quality
+- **Before**: 6-12 sparse orders with obvious gaps
+- **After**: 28-66 natural orders with smooth depth progression
+- **Result**: Indistinguishable from mainnet for paper trading
 
-### 🎯 Network Information
-- **Trading Network**: Injective Testnet
-- **Price Reference**: Injective Mainnet
-- **Web Interface**: Localhost (Port 8000)
-- **WebSocket**: Real-time updates
+### Price Accuracy
+- **Deviation threshold**: <2% from mainnet
+- **Update frequency**: Every 15 seconds
+- **Response time**: Immediate when gap detected
+
+### Sequence Management
+- **Automatic recovery** from sequence mismatches
+- **Circuit breaker** after consecutive errors
+- **Proactive refresh** every 30 seconds
+- **Bulletproof operation** with comprehensive error handling
+
+### Transaction Efficiency
+- **Batch transactions** for create + cancel operations
+- **Reduced gas costs** through batching
+- **Atomic operations** prevent partial failures
+
+## 📁 Project Structure
+
+```
+├── derivative_trader.py       # Main derivative trading bot
+├── spot_trader.py            # Main spot trading bot
+├── trader.py                 # Original unified trader (legacy)
+│
+├── config/
+│   ├── trader_config.json    # Market configuration
+│   └── markets_config.json   # Alternative market config (deprecated)
+│
+├── scripts/
+│   ├── manual_order_canceller.py  # Emergency cancellation
+│   └── position_closer.py         # Position management
+│
+├── utils/
+│   ├── secure_wallet_loader.py    # Wallet configuration
+│   ├── balance_checker.py         # Balance monitoring
+│   ├── health_checker.py          # Network health checks
+│   ├── market_comparison_unified.py  # Market data analysis
+│   ├── check_open_orders.py       # Order monitoring
+│   └── check_positions.py         # Position monitoring
+│
+├── web/
+│   ├── app.py                # Web dashboard backend
+│   └── static/              # Web dashboard frontend
+│
+├── docs/
+│   ├── SPOT_TRADER_GUIDE.md           # Comprehensive spot guide
+│   ├── SEQUENCE_MANAGEMENT_GUIDE.md   # Sequence error prevention
+│   └── BEAUTIFUL_ORDERBOOK_EXAMPLE.md # Orderbook design theory
+│
+├── data/                    # Market data snapshots
+├── logs/                    # Trading logs
+├── tests/                   # Test suites
+└── requirements.txt         # Python dependencies
+```
+
+## 📚 Documentation
+
+### Trader Guides
+- **[Spot Trader Guide](docs/SPOT_TRADER_GUIDE.md)** - Complete guide for spot trading
+- **[Sequence Management Guide](docs/SEQUENCE_MANAGEMENT_GUIDE.md)** - Error prevention
+- **[Orderbook Design Guide](docs/BEAUTIFUL_ORDERBOOK_EXAMPLE.md)** - Theory and examples
+
+### System Documentation
+- **[Architecture Overview](ARCHITECTURE.md)** - System design and components
+- **[Project Structure](PROJECT_STRUCTURE.md)** - File organization
+- **[Configuration Guide](config/README.md)** - Configuration reference
+
+### Utility Documentation
+- **[Health Checker Guide](utils/HEALTH_CHECKER_README.md)** - Network diagnostics
+- **[Utilities README](utils/README.md)** - Utility tools overview
+
+## 🔒 Security & Risk Management
+
+### Security Best Practices
+- **Private keys in .env** - Never commit to version control
+- **Testnet only by default** - Mainnet requires explicit configuration
+- **Secure wallet loading** - Environment variable isolation
+- **Log sanitization** - Sensitive data filtered from logs
+
+### Risk Controls
+- **Sequence management** - Prevents transaction conflicts
+- **Circuit breakers** - Automatic pause after errors
+- **Balance monitoring** - Real-time balance tracking
+- **Order limits** - Configurable per-wallet maximums
+
+### Operational Safety
+- **Graceful shutdown** - Clean exit on Ctrl+C
+- **Error recovery** - Automatic retry with backoff
+- **Transaction logging** - Full audit trail with blockchain hashes
+- **Health monitoring** - Pre-trade network checks
+
+## ⚠️ Important Notes
+
+### Testnet Configuration
+- Configured for Injective **testnet** by default
+- Use testnet wallets and tokens (free from faucet)
+- Never use mainnet private keys in testnet configuration
+- Testnet tokens have no real value
+
+### Operational Considerations
+- **Monitor initially** - Watch first few cycles for proper operation
+- **Multiple wallets** - Run in separate terminals for deeper liquidity
+- **Log monitoring** - Check logs regularly for errors
+- **Network status** - Use health checker before starting
+
+### Performance Stats
+- **Order success rate**: ~95-98%
+- **Sequence error rate**: <1% with enhanced management
+- **Price convergence**: Typically within 2-3 cycles
+- **Resource usage**: Low CPU/memory footprint
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**"No wallets found"**
+- Check `.env` file exists and has correct format
+- Verify `WALLET_X_ENABLED=true` is set
+- Ensure private keys are valid hex strings
+
+**"Sequence mismatch" errors**
+- Bots have automatic recovery built-in
+- Wait 10-30 seconds for automatic resolution
+- Circuit breaker will pause and recover automatically
+
+**"Mainnet price failed"**
+- Network connectivity issue
+- Bot will retry automatically
+- Check with `python utils/health_checker.py --network mainnet`
+
+**"Market not found"**
+- Verify market is enabled in `config/trader_config.json`
+- Check market type matches bot (spot vs derivative)
+- Ensure market IDs are correct for testnet
+
+### Debug Mode
+
+Enable verbose logging by checking log files:
+```bash
+# Spot trader logs
+tail -f logs/spot_trader.log
+
+# Derivative trader logs
+tail -f logs/derivative_trader.log
+
+# General trading logs
+tail -f logs/trader.log
+```
+
+## 🚀 Production Deployment
+
+### Using Screen (Simple)
+```bash
+# Start in screen session
+screen -S derivative-wallet1
+python derivative_trader.py wallet_1
+# Ctrl+A, D to detach
+
+# Reattach later
+screen -r derivative-wallet1
+```
+
+### Using nohup (Background)
+```bash
+nohup python derivative_trader.py wallet_1 > logs/derivative_wallet1.log 2>&1 &
+nohup python spot_trader.py wallet2 > logs/spot_wallet2.log 2>&1 &
+```
+
+### Using systemd (Recommended)
+Create service files in `/etc/systemd/system/`:
+
+```ini
+[Unit]
+Description=Injective Derivative Trader - Wallet 1
+After=network.target
+
+[Service]
+Type=simple
+User=your_user
+WorkingDirectory=/path/to/qa-python-injective-trading-bot
+Environment="PATH=/path/to/qa-python-injective-trading-bot/venv/bin"
+ExecStart=/path/to/venv/bin/python derivative_trader.py wallet_1
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+## 🔮 Future Enhancements
+
+### Planned Features
+- Advanced analytics and performance metrics
+- Strategy configuration via web interface
+- Additional market types and trading pairs
+- Enhanced risk management controls
+- Mobile application for monitoring
+
+### Technical Improvements
+- Database integration for historical data
+- Improved error classification and handling
+- Advanced orderbook algorithms
+- Multi-network support enhancements
+
+## 📞 Support
+
+For issues or questions:
+1. Check the relevant documentation in `docs/`
+2. Review log files for detailed error messages
+3. Use health checker to diagnose network issues
+4. Check configuration files for proper setup
+
+## 📈 Success Metrics
+
+The bot is successfully operating when:
+- Testnet prices consistently within 2% of mainnet
+- Orderbooks show 30+ orders across price levels
+- Paper traders report realistic trading conditions
+- Sequence errors occur <1% of the time
+- Price convergence happens within minutes of divergence
 
 ---
 
-## 🏆 Final Words
+## 🎯 Project Goals
 
-**Built with ❤️ for the Injective ecosystem**
+**Primary Goal**: Make Injective testnet prices and liquidity match mainnet quality.
 
-*The QA Injective MM Bot provides professional-grade market making capabilities with a modern web interface. Use it wisely, trade responsibly, and may your profits be ever in your favor.* 🚀🌙
+**Success Criteria**: 
+- Paper traders can't distinguish testnet from mainnet
+- Sufficient liquidity depth for realistic order execution
+- Price accuracy enables meaningful strategy testing
+- Infrastructure supports Injective ecosystem growth
 
-**GM! LFG! WAGMI!** 💎🙌
+**Built for the Injective community** to enable realistic paper trading and strategy development.
 
 ---
 
-*P.S. If this bot makes you rich, remember to tip your developer! 😉*
+*This is testnet infrastructure for the ecosystem. Use responsibly and help make Injective testnet better for everyone.*

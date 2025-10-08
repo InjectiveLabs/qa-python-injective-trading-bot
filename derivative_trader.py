@@ -360,14 +360,61 @@ class SingleWalletTrader:
                 log(f"⚠️ No open orders found to cancel (orderbook may be too fresh)", self.wallet_id)
                 return []
             
-            log(f"📋 Found {len(orders)} open orders, selecting {min(num_to_cancel, len(orders))} to cancel", self.wallet_id)
+            # INTELLIGENT BALANCING: Cancel orders from the side that has too many
+            buy_orders = [o for o in orders if o.get('orderType', '').upper() == 'BUY']
+            sell_orders = [o for o in orders if o.get('orderType', '').upper() == 'SELL']
             
-            # Sort by order_hash to get consistent ordering (older orders typically have lower hashes)
-            # Orders are dict objects, so use dict access
-            sorted_orders = sorted(orders, key=lambda x: x.get('orderHash', ''))
+            log(f"📋 Found {len(orders)} open orders ({len(buy_orders)} BUY, {len(sell_orders)} SELL), selecting {min(num_to_cancel, len(orders))} to cancel", self.wallet_id)
             
-            # Select up to num_to_cancel oldest orders
-            orders_to_cancel = sorted_orders[:min(num_to_cancel, len(sorted_orders))]
+            orders_to_cancel = []
+            
+            # Strategy: Maintain balance by cancelling from the overrepresented side
+            buy_count = len(buy_orders)
+            sell_count = len(sell_orders)
+            
+            if buy_count == 0 and sell_count == 0:
+                return []  # No orders to cancel
+            
+            # Calculate imbalance
+            total_orders = buy_count + sell_count
+            buy_ratio = buy_count / total_orders if total_orders > 0 else 0
+            sell_ratio = sell_count / total_orders if total_orders > 0 else 0
+            
+            # Determine which side is overrepresented (threshold: >60% of orders)
+            if buy_ratio > 0.6:  # Too many buy orders
+                sorted_buys = sorted(buy_orders, key=lambda x: x.get('orderHash', ''))
+                cancel_from_buys = min(num_to_cancel, len(sorted_buys))
+                orders_to_cancel.extend(sorted_buys[:cancel_from_buys])
+                log(f"⚖️ REBALANCING: Too many BUY orders ({buy_ratio:.1%}), cancelling {cancel_from_buys} BUY orders", self.wallet_id)
+                
+            elif sell_ratio > 0.6:  # Too many sell orders
+                sorted_sells = sorted(sell_orders, key=lambda x: x.get('orderHash', ''))
+                cancel_from_sells = min(num_to_cancel, len(sorted_sells))
+                orders_to_cancel.extend(sorted_sells[:cancel_from_sells])
+                log(f"⚖️ REBALANCING: Too many SELL orders ({sell_ratio:.1%}), cancelling {cancel_from_sells} SELL orders", self.wallet_id)
+                
+            else:  # Balanced or slight imbalance - cancel proportionally
+                # Cancel proportionally from both sides to maintain balance
+                buys_to_cancel = int(num_to_cancel * buy_ratio) if buy_count > 0 else 0
+                sells_to_cancel = num_to_cancel - buys_to_cancel
+                
+                # Adjust if we don't have enough orders on one side
+                if buys_to_cancel > buy_count:
+                    sells_to_cancel += (buys_to_cancel - buy_count)
+                    buys_to_cancel = buy_count
+                elif sells_to_cancel > sell_count:
+                    buys_to_cancel += (sells_to_cancel - sell_count)
+                    sells_to_cancel = sell_count
+                
+                if buys_to_cancel > 0:
+                    sorted_buys = sorted(buy_orders, key=lambda x: x.get('orderHash', ''))
+                    orders_to_cancel.extend(sorted_buys[:buys_to_cancel])
+                    
+                if sells_to_cancel > 0:
+                    sorted_sells = sorted(sell_orders, key=lambda x: x.get('orderHash', ''))
+                    orders_to_cancel.extend(sorted_sells[:sells_to_cancel])
+                
+                log(f"⚖️ BALANCED: Cancelling {buys_to_cancel} BUY + {sells_to_cancel} SELL orders proportionally", self.wallet_id)
             
             # Format as order data dicts for composer (matching manual_order_canceller.py format)
             order_data_list = [
@@ -411,26 +458,32 @@ class SingleWalletTrader:
             # Progressive depth expansion - each cycle pushes orders further out
             current_stage = self.orderbook_depth_stage[market_id]
             
-            # Define spread ranges for each stage (gradually expanding)
+            # Define spread ranges for each stage (MUCH WIDER for deep orderbook)
             spread_ranges = [
-                (0.001, 0.005),  # Stage 0: 0.1%-0.5% (tight center)
-                (0.005, 0.015),  # Stage 1: 0.5%-1.5% (mid range)
-                (0.015, 0.03),   # Stage 2: 1.5%-3% (wider)
-                (0.03, 0.05),    # Stage 3: 3%-5% (deep)
-                (0.05, 0.08),    # Stage 4: 5%-8% (very deep)
+                (0.002, 0.015),  # Stage 0: 0.2%-1.5% (tight center)
+                (0.010, 0.035),  # Stage 1: 1%-3.5% (mid range)
+                (0.025, 0.060),  # Stage 2: 2.5%-6% (wider)
+                (0.045, 0.090),  # Stage 3: 4.5%-9% (deep)
+                (0.070, 0.120),  # Stage 4: 7%-12% (very deep)
+                (0.100, 0.180),  # Stage 5: 10%-18% (ultra deep)
             ]
             
-            # Cycle through stages (reset to 0 after stage 4)
+            # Cycle through stages (reset to 0 after stage 5)
             min_spread, max_spread = spread_ranges[current_stage % len(spread_ranges)]
             
-            # Place 5-8 SMALL orders per side at VARIED prices for organic look
-            num_orders_per_side = random.randint(5, 8)
+            # Place MORE orders per side for deeper book
+            num_orders_per_side = random.randint(8, 12)
             
             log(f"📏 Depth stage {current_stage}: spread range {min_spread*100:.1f}%-{max_spread*100:.1f}%", self.wallet_id)
             
             for i in range(num_orders_per_side):
-                # Random spread within this stage's range - each order at different price
-                spread = random.uniform(min_spread, max_spread)
+                # EXPONENTIAL spread distribution for better price diversity
+                # Early orders closer to center, later orders much further out
+                spread_factor = (i / (num_orders_per_side - 1)) ** 1.5  # Exponential curve
+                spread = min_spread + (max_spread - min_spread) * spread_factor
+                
+                # Add small random variation to avoid exact duplicates
+                spread *= random.uniform(0.9, 1.1)
                 offset = spread
                 
                 # Smaller sizes (20%-50% of base) but more orders for organic look
@@ -453,10 +506,11 @@ class SingleWalletTrader:
                     cid=None
                 ))
                 
-                # Sell order
-                sell_price = Decimal(str(center_price * (1 + offset)))
+                # Sell order - add extra buffer to prevent immediate fills
+                sell_spread_buffer = 0.002  # Extra 0.2% buffer for sells
+                sell_price = Decimal(str(center_price * (1 + offset + sell_spread_buffer)))
                 sell_price = sell_price.quantize(Decimal('0.0001') if sell_price > 10 else Decimal('0.00001'))
-                sell_margin = (sell_price * actual_size * margin_ratio).quantize(Decimal('0.01'))
+                sell_margin = (sell_price * actual_size * margin_ratio * Decimal("1.5")).quantize(Decimal('0.01'))  # Higher margin for shorts
                 
                 orders.append(self.composer.derivative_order(
                     market_id=market_id,
@@ -469,13 +523,29 @@ class SingleWalletTrader:
                     cid=None
                 ))
             
-            # Advance to next depth stage
-            self.orderbook_depth_stage[market_id] = current_stage + 1
+            # Advance to next stage FASTER (every 2 cycles instead of every cycle)
+            if random.random() < 0.5:  # 50% chance to advance stage each cycle
+                self.orderbook_depth_stage[market_id] = current_stage + 1
+                log(f"📈 Advanced to depth stage {self.orderbook_depth_stage[market_id]}", self.wallet_id)
             
             log(f"📝 Created {len(orders)} gradual orders ({num_orders_per_side} buys + {num_orders_per_side} sells)", self.wallet_id)
             
-            # Cancel more orders to match higher creation rate (5-8 created, cancel 4-6)
-            num_to_cancel = random.randint(4, 6)
+            # Debug: Show sell order prices to verify they're reasonable
+            sell_orders = [o for o in orders if "SELL" in str(o)]
+            buy_orders = [o for o in orders if "BUY" in str(o)]
+            
+            if sell_orders and num_orders_per_side > 0:
+                # Estimate sell prices for logging (this is approximate)
+                min_sell_spread = min_spread + 0.002  # Adding our buffer
+                max_sell_spread = max_spread + 0.002
+                min_sell_price = center_price * (1 + min_sell_spread)
+                max_sell_price = center_price * (1 + max_sell_spread)
+                log(f"💸 Sell orders: ${min_sell_price:.4f} - ${max_sell_price:.4f} (spread: {min_sell_spread*100:.2f}% - {max_sell_spread*100:.2f}%)", self.wallet_id)
+                log(f"📊 Current market: mid=${center_price:.4f}, expected sells should appear ABOVE this price", self.wallet_id)
+                log(f"🔍 Created {len(buy_orders)} BUY + {len(sell_orders)} SELL orders for submission", self.wallet_id)
+            
+            # Reduce cancellation rate to preserve sell orders (was 4-6, now 2-3)
+            num_to_cancel = random.randint(2, 3)
             orders_to_cancel = await self.get_open_orders_to_cancel(market_id, num_to_cancel)
             
         except Exception as e:
@@ -487,8 +557,10 @@ class SingleWalletTrader:
     async def create_beautiful_orderbook(self, market_id: str, market_symbol: str, market_config: Dict, 
                                          testnet_price: float, mainnet_price: float) -> list:
         """
-        Create a beautiful, natural-looking orderbook with deep liquidity
-        Used when prices are aligned (< 2% difference)
+        Create a smart, adaptive orderbook that responds to market conditions
+        - Detects aggressive buyers/sellers and adjusts accordingly
+        - Uses dynamic sizing based on orderbook depth
+        - Implements smart spread management
         """
         orders = []
         try:
@@ -497,6 +569,71 @@ class SingleWalletTrader:
             
             # Use mainnet price as the center for orderbook
             center_price = mainnet_price
+            
+            # SMART ADAPTATION: Check current orderbook conditions
+            current_orderbook = await self.get_orderbook_depth(market_id)
+            
+            # Analyze market conditions
+            buy_pressure, sell_pressure = self.analyze_market_pressure(current_orderbook)
+            
+            # Dynamic order sizing based on market conditions AND price convergence mission
+            price_gap_percent = abs(mainnet_price - testnet_price) / mainnet_price * 100
+            is_testnet_overpriced = testnet_price > mainnet_price
+            
+            if buy_pressure > 3.0:  # Strong buying pressure detected
+                if is_testnet_overpriced:
+                    log(f"🎯 MISSION MODE: Testnet overpriced by {price_gap_percent:.1f}% + Strong buying pressure ({buy_pressure:.1f}x)", self.wallet_id)
+                    log(f"🔥 Strategy: AGGRESSIVE SELLING to correct price + Strategic buying at mainnet levels", self.wallet_id)
+                    # MISSION: Correct overpriced testnet with aggressive selling
+                    buy_size_multiplier = 0.8   # Some buy support at mainnet price
+                    sell_size_multiplier = 3.0  # VERY aggressive selling to push price down
+                    sell_spread_multiplier = 0.6  # Much tighter sell spreads (aggressive correction)
+                    buy_spread_multiplier = 1.2   # Slightly wider buy spreads
+                else:
+                    log(f"🔥 STRONG BUYING PRESSURE detected ({buy_pressure:.1f}x) - Adapting strategy", self.wallet_id)
+                    # Standard adaptive response when testnet isn't overpriced
+                    buy_size_multiplier = 0.5
+                    sell_size_multiplier = 2.0
+                    sell_spread_multiplier = 0.8
+                    buy_spread_multiplier = 1.5
+                    
+            elif sell_pressure > 3.0:  # Strong selling pressure detected
+                if not is_testnet_overpriced:  # Testnet is underpriced
+                    log(f"🎯 MISSION MODE: Testnet underpriced by {price_gap_percent:.1f}% + Strong selling pressure ({sell_pressure:.1f}x)", self.wallet_id)
+                    log(f"🔥 Strategy: AGGRESSIVE BUYING to correct price + Strategic selling at mainnet levels", self.wallet_id)
+                    # MISSION: Support underpriced testnet with aggressive buying
+                    buy_size_multiplier = 3.0   # VERY aggressive buying to push price up
+                    sell_size_multiplier = 0.8  # Some sell resistance at mainnet price
+                    sell_spread_multiplier = 1.2  # Slightly wider sell spreads
+                    buy_spread_multiplier = 0.6   # Much tighter buy spreads (aggressive correction)
+                else:
+                    log(f"🔥 STRONG SELLING PRESSURE detected ({sell_pressure:.1f}x) - Adapting strategy", self.wallet_id)
+                    # Standard adaptive response when testnet isn't underpriced
+                    buy_size_multiplier = 2.0
+                    sell_size_multiplier = 0.5
+                    sell_spread_multiplier = 1.5
+                    buy_spread_multiplier = 0.8
+            else:
+                # Balanced market - focus purely on price convergence mission
+                if price_gap_percent > 2.0:
+                    if is_testnet_overpriced:
+                        log(f"🎯 PRICE CORRECTION MODE: Testnet {price_gap_percent:.1f}% overpriced - Aggressive selling", self.wallet_id)
+                        buy_size_multiplier = 0.7
+                        sell_size_multiplier = 2.5  # Aggressive selling to correct
+                        sell_spread_multiplier = 0.7  # Tighter sells
+                        buy_spread_multiplier = 1.3   # Wider buys
+                    else:
+                        log(f"🎯 PRICE CORRECTION MODE: Testnet {price_gap_percent:.1f}% underpriced - Aggressive buying", self.wallet_id)
+                        buy_size_multiplier = 2.5   # Aggressive buying to correct
+                        sell_size_multiplier = 0.7
+                        sell_spread_multiplier = 1.3  # Wider sells
+                        buy_spread_multiplier = 0.7   # Tighter buys
+                else:
+                    log(f"⚖️ BALANCED MARKET + ALIGNED PRICES ({price_gap_percent:.1f}% gap) - Standard strategy", self.wallet_id)
+                    buy_size_multiplier = 1.0
+                    sell_size_multiplier = 1.0
+                    sell_spread_multiplier = 1.0
+                    buy_spread_multiplier = 1.0
             
             # Create beautiful staircase orderbook with smooth depth
             # Start tight near center, gradually widen
@@ -520,19 +657,38 @@ class SingleWalletTrader:
                 
                 order_levels.append((spread, size_mult))
             
-            # Create orders at each level
+            # Create orders at each level with smart adaptation
             for level_idx, (spread, size_mult) in enumerate(order_levels):
                 # Add slight randomization for natural look
                 spread_jitter = random.uniform(0.95, 1.05)
                 size_jitter = random.uniform(0.9, 1.1)
                 
-                actual_spread = spread * spread_jitter
-                actual_size = order_size * Decimal(str(size_mult * size_jitter))
-                actual_size = actual_size.quantize(Decimal('0.001'))
+                # Apply smart multipliers based on market conditions
+                buy_spread = spread * spread_jitter * buy_spread_multiplier
+                sell_spread = spread * spread_jitter * sell_spread_multiplier
                 
-                # Calculate prices for this level with much larger buffer for sells
-                buy_price = Decimal(str(center_price * (1 - actual_spread)))
-                sell_price = Decimal(str(center_price * (1 + actual_spread + 0.005)))  # Extra 0.5% buffer for sells (was 0.1%)
+                buy_size = order_size * Decimal(str(size_mult * size_jitter * buy_size_multiplier))
+                sell_size = order_size * Decimal(str(size_mult * size_jitter * sell_size_multiplier))
+                
+                buy_size = buy_size.quantize(Decimal('0.001'))
+                sell_size = sell_size.quantize(Decimal('0.001'))
+                
+                # Calculate prices for this level with much more conservative sells
+                buy_price = Decimal(str(center_price * (1 - buy_spread)))
+                
+                # CRITICAL FIX: For huge price gaps, place sells ABOVE the testnet best bid to avoid whales
+                if price_gap_percent > 5.0:  # Large price gap detected
+                    # Get the best bid from testnet orderbook to avoid whale orders
+                    testnet_best_bid = testnet_price  # This is the best bid price
+                    
+                    # Place sells ABOVE the whale's bid with small premiums
+                    sell_premium_percent = 0.002 + (sell_spread * 0.5)  # 0.2% base + spread
+                    sell_price = Decimal(str(testnet_best_bid * (1 + sell_premium_percent)))
+                    
+                    log(f"🐋 Whale avoidance: Placing sells ABOVE testnet bid ${testnet_best_bid:.4f} at ${float(sell_price):.4f} (+{sell_premium_percent*100:.2f}%)", self.wallet_id) if level_idx == 0 else None
+                else:
+                    # Normal mode - use mainnet price as base
+                    sell_price = Decimal(str(center_price * (1 + sell_spread + 0.005)))  # Extra buffer for sells
                 
                 # Smart rounding based on price level for natural look
                 if buy_price > 10:
@@ -542,43 +698,44 @@ class SingleWalletTrader:
                     buy_price = buy_price.quantize(Decimal('0.00001'))
                     sell_price = sell_price.quantize(Decimal('0.00001'))
                 
-                # Create buy order
-                buy_margin = buy_price * actual_size * margin_ratio
-                # Round margin to avoid decimal precision issues with blockchain
-                buy_margin = buy_margin.quantize(Decimal('0.01'))
-                buy_order = self.composer.derivative_order(
-                    market_id=market_id,
-                    subaccount_id=self.address.get_subaccount_id(0),
-                    fee_recipient=self.address.to_acc_bech32(),
-                    price=buy_price,
-                    quantity=actual_size,
-                    margin=buy_margin,
-                    order_type="BUY",
-                    cid=None
-                )
-                orders.append(buy_order)
+                # Create buy order (only if size is meaningful)
+                if buy_size >= Decimal('0.1'):  # Minimum order size check
+                    buy_margin = buy_price * buy_size * margin_ratio
+                    buy_margin = buy_margin.quantize(Decimal('0.01'))
+                    buy_order = self.composer.derivative_order(
+                        market_id=market_id,
+                        subaccount_id=self.address.get_subaccount_id(0),
+                        fee_recipient=self.address.to_acc_bech32(),
+                        price=buy_price,
+                        quantity=buy_size,
+                        margin=buy_margin,
+                        order_type="BUY",
+                        cid=None
+                    )
+                    orders.append(buy_order)
                 
-                # Create sell order with potentially higher margin for shorts
-                sell_margin = sell_price * actual_size * margin_ratio * Decimal("1.5")  # 50% more margin for shorts
-                # Round margin to avoid decimal precision issues with blockchain
-                sell_margin = sell_margin.quantize(Decimal('0.01'))
-                sell_order = self.composer.derivative_order(
-                    market_id=market_id,
-                    subaccount_id=self.address.get_subaccount_id(0),
-                    fee_recipient=self.address.to_acc_bech32(),
-                    price=sell_price,
-                    quantity=actual_size,
-                    margin=sell_margin,
-                    order_type="SELL",
-                    cid=None
-                )
-                orders.append(sell_order)
+                # Create sell order (only if size is meaningful)
+                if sell_size >= Decimal('0.1'):  # Minimum order size check
+                    sell_margin = sell_price * sell_size * margin_ratio * Decimal("1.5")  # Higher margin for shorts
+                    sell_margin = sell_margin.quantize(Decimal('0.01'))
+                    sell_order = self.composer.derivative_order(
+                        market_id=market_id,
+                        subaccount_id=self.address.get_subaccount_id(0),
+                        fee_recipient=self.address.to_acc_bech32(),
+                        price=sell_price,
+                        quantity=sell_size,
+                        margin=sell_margin,
+                        order_type="SELL",
+                        cid=None
+                    )
+                    orders.append(sell_order)
                 
-                # Debug: Log first few levels to verify balance and market distance
-                if level_idx < 3:  # Show first 3 levels instead of 2
+                # Debug: Log first few levels to verify whale avoidance strategy
+                if level_idx < 3:
                     buy_distance = (center_price - float(buy_price)) / center_price * 100
                     sell_distance = (float(sell_price) - center_price) / center_price * 100
-                    log(f"🔍 Level {level_idx}: BUY ${buy_price:.4f} ({buy_distance:.2f}% below) | SELL ${sell_price:.4f} ({sell_distance:.2f}% above) | Size: {actual_size}", self.wallet_id)
+                    whale_distance = (float(sell_price) - testnet_price) / testnet_price * 100
+                    log(f"🔍 Level {level_idx}: BUY ${buy_price:.4f} ({buy_distance:.2f}% below mainnet, size: {buy_size}) | SELL ${sell_price:.4f} ({sell_distance:.2f}% above mainnet, +{whale_distance:.2f}% vs whale bid, size: {sell_size})", self.wallet_id)
             
             # Count buy vs sell orders for debugging
             buy_orders = [o for o in orders if "BUY" in str(o)]
@@ -595,6 +752,56 @@ class SingleWalletTrader:
             log(f"❌ Error creating beautiful orderbook for {market_symbol}: {e}", self.wallet_id)
             
         return orders
+    
+    async def get_orderbook_depth(self, market_id: str) -> dict:
+        """Get current orderbook depth for market analysis"""
+        try:
+            # Fix: Add required depth parameter
+            orderbook = await self.indexer_client.fetch_derivative_orderbook_v2(market_id=market_id, depth=10)
+            return {
+                'buys': orderbook.get('buys', []),
+                'sells': orderbook.get('sells', [])
+            }
+        except Exception as e:
+            log(f"⚠️ Could not fetch orderbook depth: {e}", self.wallet_id)
+            return {'buys': [], 'sells': []}
+    
+    def analyze_market_pressure(self, orderbook: dict) -> tuple:
+        """
+        Analyze market pressure from orderbook depth
+        Returns (buy_pressure, sell_pressure) as ratios
+        """
+        try:
+            buys = orderbook.get('buys', [])
+            sells = orderbook.get('sells', [])
+            
+            if not buys or not sells:
+                return 1.0, 1.0  # Neutral if no data
+            
+            # Calculate total volume in top 5 levels
+            buy_volume = sum(float(order.get('quantity', 0)) for order in buys[:5])
+            sell_volume = sum(float(order.get('quantity', 0)) for order in sells[:5])
+            
+            if buy_volume == 0 or sell_volume == 0:
+                return 1.0, 1.0
+            
+            # Calculate pressure ratios
+            if buy_volume > sell_volume:
+                buy_pressure = buy_volume / sell_volume
+                sell_pressure = 1.0
+            else:
+                sell_pressure = sell_volume / buy_volume
+                buy_pressure = 1.0
+                
+            # Cap extreme values
+            buy_pressure = min(buy_pressure, 10.0)
+            sell_pressure = min(sell_pressure, 10.0)
+            
+            return buy_pressure, sell_pressure
+            
+        except Exception as e:
+            log(f"⚠️ Error analyzing market pressure: {e}", self.wallet_id)
+            return 1.0, 1.0
     
     async def send_batch_orders(self, spot_orders: list, derivative_orders: list, derivative_orders_to_cancel: list = None):
         """
@@ -680,7 +887,12 @@ class SingleWalletTrader:
                     self.consecutive_sequence_errors = 0  # Reset error counter
                     
                     cancel_msg = f", cancelled {total_cancellations}" if total_cancellations > 0 else ""
-                    log(f"✅ Placed {total_orders} orders ({len(spot_orders)} spot, {len(derivative_orders)} derivative{cancel_msg}) | TX: {tx_hash}", self.wallet_id)
+                    
+                    # Debug: Count order types for detailed logging
+                    buy_orders = [o for o in derivative_orders if "BUY" in str(o)]
+                    sell_orders = [o for o in derivative_orders if "SELL" in str(o)]
+                    
+                    log(f"✅ Placed {total_orders} orders ({len(spot_orders)} spot, {len(derivative_orders)} derivative: {len(buy_orders)} BUY + {len(sell_orders)} SELL{cancel_msg}) | TX: {tx_hash}", self.wallet_id)
                     
                     # Refresh sequence after success to stay in sync
                     await self.refresh_sequence()

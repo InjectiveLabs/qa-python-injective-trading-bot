@@ -345,6 +345,37 @@ class SingleWalletTrader:
                     market_id, market_symbol, market_config, price, mainnet_price, blocker_info
                 )
                 
+                # SMART ORDER MANAGEMENT: Build depth first, then maintain
+                if orders:  # Only check cancellation if we're placing new orders
+                    # Check current open order count
+                    try:
+                        from pyinjective.client.model.pagination import PaginationOption
+                        current_orders_response = await self.indexer_client.fetch_derivative_orders(
+                            market_ids=[market_id],
+                            subaccount_id=self.address.get_subaccount_id(0),
+                            pagination=PaginationOption(limit=100)
+                        )
+                        current_order_count = len(current_orders_response.get('orders', []))
+                        
+                        # TARGET: Maintain 50-60 open orders for good liquidity depth
+                        target_min_orders = 50
+                        target_max_orders = 60
+                        
+                        if current_order_count >= target_max_orders:
+                            # We have enough depth, start cancelling to maintain balance
+                            num_to_cancel = min(8, current_order_count - target_min_orders)  # Cancel excess
+                            cancellations = await self.get_open_orders_to_cancel(market_id, num_to_cancel)
+                            log(f"🎯 DEPTH MANAGEMENT: {current_order_count} orders (target: {target_min_orders}-{target_max_orders}), cancelling {len(cancellations)} excess orders", self.wallet_id)
+                            return orders, cancellations
+                        else:
+                            # Still building depth, don't cancel yet
+                            log(f"📈 BUILDING DEPTH: {current_order_count} orders (target: {target_min_orders}-{target_max_orders}), adding {len(orders)} more", self.wallet_id)
+                            return orders
+                            
+                    except Exception as e:
+                        log(f"⚠️ Could not check order count, proceeding without cancellation: {e}", self.wallet_id)
+                        return orders
+                
                 # DEBUG: Check orderbook after placing orders
                 if orders:
                     log(f"🔍 DEBUG: Placed {len(orders)} orders, checking orderbook in 3 seconds...", self.wallet_id)
@@ -364,7 +395,6 @@ class SingleWalletTrader:
                             log(f"🔍 DEBUG: Best ask now: ${best_ask:.2f}", self.wallet_id)
                     else:
                         log(f"🔍 DEBUG: Still no orderbook data after placing orders", self.wallet_id)
-                
                 return orders
             else:
                 # Can't get mainnet price - use testnet price as fallback

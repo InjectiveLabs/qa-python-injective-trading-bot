@@ -2,7 +2,7 @@
   "mode": "single_wallet",
   "wallets": {
     "wallet_1": {
-      "markets": ["INJ/USDT", "stINJ/INJ", "TIA/USDT", "HDRO/INJ", "INJ/USDT-PERP"],
+      "markets": ["INJ/USDT", "stINJ/INJ", "TIA/USDT", "HDRO/INJ", "INJ/USDT-PERP", "ATOM/USDT-PERP"],
       "trading_params": {
         "spread_percent": 0.5,
         "order_size": 15,
@@ -10,7 +10,7 @@
       }
     },
     "wallet_2": {
-      "markets": ["INJ/USDT", "stINJ/INJ", "TIA/USDT", "HDRO/INJ", "INJ/USDT-PERP"],
+      "markets": ["INJ/USDT", "stINJ/INJ", "TIA/USDT", "HDRO/INJ", "INJ/USDT-PERP", "ATOM/USDT-PERP"],
       "trading_params": {
         "spread_percent": 0.5,
         "order_size": 15,
@@ -18,7 +18,7 @@
       }
     },
     "wallet_3": {
-      "markets": ["INJ/USDT", "stINJ/INJ", "TIA/USDT", "HDRO/INJ", "INJ/USDT-PERP"],
+      "markets": ["INJ/USDT", "stINJ/INJ", "TIA/USDT", "HDRO/INJ", "INJ/USDT-PERP", "ATOM/USDT-PERP"],
       "trading_params": {
         "spread_percent": 0.5,
         "order_size": 15,
@@ -105,6 +105,22 @@
         "correction_aggressiveness": 0.6,
         "max_correction_size": 80,
         "correction_cooldown": 180
+      }
+    },
+    "ATOM/USDT-PERP": {
+      "testnet_market_id": "0xd97d0da6f6c11710ef06315971250e4e9aed4b7d4cd02059c9477ec8cf243782",
+      "mainnet_market_id": "0xc559df216747fc11540e638646c384ad977617d6d8f0ea5ffdfc18d52e58ab01",
+      "type": "derivative",
+      "spread_percent": 0.4,
+      "order_size": 12,
+      "min_spread": 0.08,
+      "max_spread": 2.0,
+      "price_correction": {
+        "enabled": true,
+        "deviation_threshold": 4.0,
+        "correction_aggressiveness": 0.7,
+        "max_correction_size": 120,
+        "correction_cooldown": 200
       }
     }
   },

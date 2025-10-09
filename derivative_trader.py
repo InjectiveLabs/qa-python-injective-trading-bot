@@ -75,8 +75,11 @@ class SingleWalletTrader:
         # Initialize wallet
         self.private_key = wallet_data['private_key']
         
-        # Initialize network 
+        # Initialize network with custom testnet endpoint
         self.network = Network.testnet()
+        # Override the indexer endpoint as recommended by dev team
+        self.network.grpc_exchange_endpoint = "k8s.testnet.exchange.grpc.injective.network:443"
+        log(f"🔧 Using custom testnet endpoint: {self.network.grpc_exchange_endpoint}", self.wallet_id)
         
         # Initialize client and other attributes (will be set in initialize())
         self.async_client = None
@@ -154,8 +157,11 @@ class SingleWalletTrader:
                 gas_price=gas_price
             )
             
+            # Confirm broadcaster is using the K8s endpoint
+            log(f"🚀 Broadcaster using endpoint: {self.network.grpc_exchange_endpoint}", self.wallet_id)
+            
             # Set timeout height offset for network congestion (increased for better reliability)
-            self.broadcaster.timeout_height_offset = 200  # Increased to 200 blocks for better reliability
+            self.broadcaster.timeout_height_offset = 300  # Increased to 300 blocks for better reliability
             
             log(f"✅ {self.wallet_id} trader initialized", self.wallet_id)
             
@@ -306,22 +312,60 @@ class SingleWalletTrader:
             if mainnet_price > 0:
                 price_gap_percent = abs(mainnet_price - price) / mainnet_price * 100
                 
-                # Determine strategy based on price alignment
-                is_aligned = price_gap_percent <= 2.0
+                log(f"💰 {market_symbol} | Testnet: ${price:.4f} | Mainnet: ${mainnet_price:.4f} | Gap: {price_gap_percent:.2f}%", self.wallet_id)
                 
-                if is_aligned:
-                    # GRADUAL BUILDING: Prices are close, add small orders + cancel old ones
-                    log(f"🔄 Gradual orderbook building (gap: {price_gap_percent:.2f}%) - adding 2-3 orders per side", self.wallet_id)
-                    # Returns tuple: (new_orders, orders_to_cancel)
-                    return await self.gradual_orderbook_update(market_id, market_symbol, market_config, price, mainnet_price)
+                # 🐋 SMART PRICE BLOCKER DETECTION & ELIMINATION
+                blocker_info = await self.detect_price_blockers(market_id, mainnet_price)
+                
+                if blocker_info['has_blockers']:
+                    log(f"🚧 Price blockers detected! {blocker_info['blocker_description']}", self.wallet_id)
+                    
+                    # Check if we can afford to eliminate the blockers
+                    available_balance = await self.get_available_balance(market_id)
+                    elimination_plan = await self.calculate_blocker_elimination_feasibility(blocker_info, available_balance)
+                    
+                    if elimination_plan['can_eliminate']:
+                        log(f"💰 BLOCKER ELIMINATION: Balance ${available_balance:.0f} | Required: ${elimination_plan['required_margin']:.0f} | Clearing the path!", self.wallet_id)
+                        
+                        # Execute blocker elimination
+                        success = await self.execute_blocker_elimination(market_id, elimination_plan['attack_plan'])
+                        
+                        if success:
+                            log(f"🎉 PATH CLEARED! Blockers eliminated. Building orderbook toward target in 5 seconds...", self.wallet_id)
+                            await asyncio.sleep(5)  # Brief pause after elimination
+                        else:
+                            log(f"❌ Elimination failed, working around blockers", self.wallet_id)
+                    else:
+                        log(f"💸 Can't eliminate blockers: {elimination_plan['reason']}. Working around them.", self.wallet_id)
                 else:
-                    # LARGE GAP: Create full beautiful orderbook to move market (no cancellations)
-                    # Reset depth stage when price diverges significantly
-                    if market_id in self.orderbook_depth_stage:
-                        self.orderbook_depth_stage[market_id] = 0
-                    log(f"✨ Large price gap ({price_gap_percent:.2f}%) - creating full orderbook at mainnet price ${mainnet_price:.4f} (testnet: ${price:.4f})", self.wallet_id)
-                    # Returns list only (no cancellations during initial build)
-                    return await self.create_beautiful_orderbook(market_id, market_symbol, market_config, price, mainnet_price)
+                    log(f"✅ No significant price blockers detected", self.wallet_id)
+                
+                # BUILD SMART ORDERBOOK (from current reality toward target)
+                orders = await self.build_smart_orderbook_toward_target(
+                    market_id, market_symbol, market_config, price, mainnet_price, blocker_info
+                )
+                
+                # DEBUG: Check orderbook after placing orders
+                if orders:
+                    log(f"🔍 DEBUG: Placed {len(orders)} orders, checking orderbook in 3 seconds...", self.wallet_id)
+                    await asyncio.sleep(3)  # Wait for orders to appear
+                    
+                    debug_orderbook = await self.get_orderbook_depth(market_id)
+                    if debug_orderbook:
+                        debug_buys = debug_orderbook.get('buys', [])
+                        debug_sells = debug_orderbook.get('sells', [])
+                        log(f"🔍 DEBUG: Orderbook now has {len(debug_buys)} bids, {len(debug_sells)} asks", self.wallet_id)
+                        
+                        if debug_buys:
+                            best_bid = float(debug_buys[0].get('price', '0'))
+                            log(f"🔍 DEBUG: Best bid now: ${best_bid:.2f}", self.wallet_id)
+                        if debug_sells:
+                            best_ask = float(debug_sells[0].get('price', '999999'))
+                            log(f"🔍 DEBUG: Best ask now: ${best_ask:.2f}", self.wallet_id)
+                    else:
+                        log(f"🔍 DEBUG: Still no orderbook data after placing orders", self.wallet_id)
+                
+                return orders
             else:
                 # Can't get mainnet price - use testnet price as fallback
                 log(f"⚠️ No mainnet price available - creating orderbook at testnet price ${price:.4f}", self.wallet_id)
@@ -492,7 +536,8 @@ class SingleWalletTrader:
                 
                 # Buy order
                 buy_price = Decimal(str(center_price * (1 - offset)))
-                buy_price = buy_price.quantize(Decimal('0.0001') if buy_price > 10 else Decimal('0.00001'))
+                # Round to 2 decimal places for exchange compatibility
+                buy_price = buy_price.quantize(Decimal('0.01'))
                 buy_margin = (buy_price * actual_size * margin_ratio).quantize(Decimal('0.01'))
                 
                 orders.append(self.composer.derivative_order(
@@ -509,7 +554,8 @@ class SingleWalletTrader:
                 # Sell order - add extra buffer to prevent immediate fills
                 sell_spread_buffer = 0.002  # Extra 0.2% buffer for sells
                 sell_price = Decimal(str(center_price * (1 + offset + sell_spread_buffer)))
-                sell_price = sell_price.quantize(Decimal('0.0001') if sell_price > 10 else Decimal('0.00001'))
+                # Round to 2 decimal places for exchange compatibility
+                sell_price = sell_price.quantize(Decimal('0.01'))
                 sell_margin = (sell_price * actual_size * margin_ratio * Decimal("1.5")).quantize(Decimal('0.01'))  # Higher margin for shorts
                 
                 orders.append(self.composer.derivative_order(
@@ -691,12 +737,9 @@ class SingleWalletTrader:
                     sell_price = Decimal(str(center_price * (1 + sell_spread + 0.005)))  # Extra buffer for sells
                 
                 # Smart rounding based on price level for natural look
-                if buy_price > 10:
-                    buy_price = buy_price.quantize(Decimal('0.0001'))
-                    sell_price = sell_price.quantize(Decimal('0.0001'))
-                else:
-                    buy_price = buy_price.quantize(Decimal('0.00001'))
-                    sell_price = sell_price.quantize(Decimal('0.00001'))
+                # Round to 2 decimal places for exchange compatibility
+                buy_price = buy_price.quantize(Decimal('0.01'))
+                sell_price = sell_price.quantize(Decimal('0.01'))
                 
                 # Create buy order (only if size is meaningful)
                 if buy_size >= Decimal('0.1'):  # Minimum order size check
@@ -802,6 +845,403 @@ class SingleWalletTrader:
         except Exception as e:
             log(f"⚠️ Error analyzing market pressure: {e}", self.wallet_id)
             return 1.0, 1.0
+    
+    async def get_available_balance(self, market_id: str) -> Decimal:
+        """Get available USDT balance for derivative trading"""
+        try:
+            portfolio = await self.indexer_client.fetch_account_portfolio(
+                account_address=self.address.to_acc_bech32()
+            )
+            
+            if not portfolio or 'portfolio' not in portfolio:
+                return Decimal('0')
+            
+            # Look for USDT balance (quote currency for derivatives)
+            for balance in portfolio['portfolio'].get('bankBalances', []):
+                denom = balance.get('denom', '')
+                if 'usdt' in denom.lower() or 'peggy0x' in denom.lower():
+                    available = balance.get('amount', '0')
+                    # Convert from wei to human readable (18 decimals for USDT)
+                    return Decimal(available) / Decimal('10') ** 18
+            
+            return Decimal('0')
+            
+        except Exception as e:
+            log(f"⚠️ Error getting available balance: {e}", self.wallet_id)
+            return Decimal('0')
+
+    async def detect_price_blockers(self, market_id: str, target_price: float) -> Dict:
+        """
+        Detect orders that block us from building orderbook toward target price
+        These are the 'whales' we need to deal with
+        """
+        try:
+            orderbook = await self.get_orderbook_depth(market_id)
+            if not orderbook:
+                return {'has_blockers': False}
+            
+            buys = orderbook.get('buys', [])
+            sells = orderbook.get('sells', [])
+            
+            blockers = {
+                'has_blockers': False,
+                'blocker_description': '',
+                'buy_blockers': [],
+                'sell_blockers': [],
+                'total_blocker_volume': Decimal('0')
+            }
+            
+            # Define what constitutes a "blocker"
+            min_blocker_size = Decimal('50')  # Orders > 50 size that block our path
+            
+            # Check for buy-side blockers (preventing us from building sells toward target)
+            if buys:
+                best_bid = float(buys[0].get('price', '0'))
+                
+                # If best bid is way above target, it's blocking us from building sell orders
+                if best_bid > target_price * 1.5:  # 50% above target
+                    for buy in buys[:3]:  # Check top 3 bids
+                        size = Decimal(buy.get('quantity', '0'))
+                        price = float(buy.get('price', '0'))
+                        
+                        if size >= min_blocker_size and price > target_price * 1.2:  # 20% above target
+                            blockers['buy_blockers'].append({
+                                'price': Decimal(str(price)),
+                                'size': size,
+                                'notional': Decimal(str(price)) * size
+                            })
+                            blockers['total_blocker_volume'] += size
+            
+            # Check for sell-side blockers (preventing us from building buys toward target)
+            if sells:
+                best_ask = float(sells[0].get('price', '999999'))
+                
+                # If best ask is way below target, it's blocking us from building buy orders
+                if best_ask < target_price * 0.5:  # 50% below target
+                    for sell in sells[:3]:  # Check top 3 asks
+                        size = Decimal(sell.get('quantity', '0'))
+                        price = float(sell.get('price', '999999'))
+                        
+                        if size >= min_blocker_size and price < target_price * 0.8:  # 20% below target
+                            blockers['sell_blockers'].append({
+                                'price': Decimal(str(price)),
+                                'size': size,
+                                'notional': Decimal(str(price)) * size
+                            })
+                            blockers['total_blocker_volume'] += size
+            
+            # Determine if we have significant blockers
+            if blockers['buy_blockers'] or blockers['sell_blockers']:
+                blockers['has_blockers'] = True
+                
+                descriptions = []
+                if blockers['buy_blockers']:
+                    buy_blocker = blockers['buy_blockers'][0]  # Biggest one
+                    descriptions.append(f"Buy blocker: {buy_blocker['size']} @ ${buy_blocker['price']:.4f}")
+                
+                if blockers['sell_blockers']:
+                    sell_blocker = blockers['sell_blockers'][0]  # Biggest one
+                    descriptions.append(f"Sell blocker: {sell_blocker['size']} @ ${sell_blocker['price']:.4f}")
+                
+                blockers['blocker_description'] = " | ".join(descriptions)
+            
+            return blockers
+            
+        except Exception as e:
+            log(f"⚠️ Error detecting price blockers: {e}", self.wallet_id)
+            return {'has_blockers': False}
+
+    async def calculate_blocker_elimination_feasibility(self, blocker_info: Dict, available_balance: Decimal) -> Dict:
+        """Calculate if we can afford to eliminate the price blockers"""
+        try:
+            if not blocker_info['has_blockers']:
+                return {'can_eliminate': False, 'reason': 'No blockers detected'}
+            
+            margin_ratio = Decimal('0.15')  # 15% margin for safety
+            required_margin = Decimal('0')
+            attack_plan = {}
+            
+            # Plan elimination of buy blockers (we sell to them)
+            if blocker_info['buy_blockers']:
+                for i, blocker in enumerate(blocker_info['buy_blockers'][:2]):  # Max 2 blockers
+                    attack_size = min(blocker['size'], blocker['size'] * Decimal('0.8'))  # Attack 80% max
+                    attack_margin = blocker['price'] * attack_size * margin_ratio
+                    required_margin += attack_margin
+                    
+                    attack_plan[f'sell_attack_{i}'] = {
+                        'target_price': blocker['price'],
+                        'attack_size': attack_size,
+                        'required_margin': attack_margin
+                    }
+            
+            # Plan elimination of sell blockers (we buy from them)
+            if blocker_info['sell_blockers']:
+                for i, blocker in enumerate(blocker_info['sell_blockers'][:2]):  # Max 2 blockers
+                    attack_size = min(blocker['size'], blocker['size'] * Decimal('0.8'))  # Attack 80% max
+                    attack_margin = blocker['price'] * attack_size * margin_ratio
+                    required_margin += attack_margin
+                    
+                    attack_plan[f'buy_attack_{i}'] = {
+                        'target_price': blocker['price'],
+                        'attack_size': attack_size,
+                        'required_margin': attack_margin
+                    }
+            
+            # Reserve funds for continued market making (30% of balance)
+            reserved_for_mm = available_balance * Decimal('0.3')
+            available_for_attack = available_balance - reserved_for_mm
+            
+            can_eliminate = required_margin <= available_for_attack and required_margin > 0
+            
+            return {
+                'can_eliminate': can_eliminate,
+                'required_margin': required_margin,
+                'available_balance': available_balance,
+                'available_for_attack': available_for_attack,
+                'reserved_for_mm': reserved_for_mm,
+                'attack_plan': attack_plan,
+                'reason': 'Sufficient funds' if can_eliminate else f'Need ${required_margin:.0f}, have ${available_for_attack:.0f}'
+            }
+            
+        except Exception as e:
+            log(f"⚠️ Error calculating blocker elimination: {e}", self.wallet_id)
+            return {'can_eliminate': False, 'reason': f'Calculation error: {e}'}
+
+    async def execute_blocker_elimination(self, market_id: str, attack_plan: Dict) -> bool:
+        """Execute the elimination of price blockers"""
+        try:
+            orders = []
+            
+            # Execute all planned attacks
+            for attack_key, attack_data in attack_plan.items():
+                price = attack_data['target_price']
+                size = attack_data['attack_size']
+                margin = attack_data['required_margin']
+                
+                if 'sell_attack' in attack_key:
+                    # Sell attack (eliminate buy blocker)
+                    order = self.composer.derivative_order(
+                        market_id=market_id,
+                        subaccount_id=self.address.get_subaccount_id(0),
+                        fee_recipient=self.address.to_acc_bech32(),
+                        price=price,
+                        quantity=size,
+                        margin=margin,
+                        order_type="SELL",
+                        cid=None
+                    )
+                    orders.append(order)
+                    log(f"🎯 ELIMINATING BUY BLOCKER: Selling {size} @ ${price:.4f}", self.wallet_id)
+                    
+                elif 'buy_attack' in attack_key:
+                    # Buy attack (eliminate sell blocker)
+                    order = self.composer.derivative_order(
+                        market_id=market_id,
+                        subaccount_id=self.address.get_subaccount_id(0),
+                        fee_recipient=self.address.to_acc_bech32(),
+                        price=price,
+                        quantity=size,
+                        margin=margin,
+                        order_type="BUY",
+                        cid=None
+                    )
+                    orders.append(order)
+                    log(f"🎯 ELIMINATING SELL BLOCKER: Buying {size} @ ${price:.4f}", self.wallet_id)
+            
+            if orders:
+                # Execute elimination orders
+                success = await self.send_batch_orders([], orders)  # Only derivative orders
+                if success:
+                    total_value = sum(float(o.price) * float(o.quantity) for o in orders)
+                    log(f"🎉 BLOCKERS ELIMINATED! Cleared ${total_value:.0f} of blocking liquidity", self.wallet_id)
+                    return True
+                else:
+                    log(f"❌ Blocker elimination failed - orders rejected", self.wallet_id)
+                    return False
+            
+            return False
+            
+        except Exception as e:
+            log(f"❌ Error executing blocker elimination: {e}", self.wallet_id)
+            return False
+
+    async def build_smart_orderbook_toward_target(self, market_id: str, market_symbol: str, market_config: Dict,
+                                                testnet_price: float, mainnet_price: float, blocker_info: Dict) -> list:
+        """
+        Build orderbook intelligently from current reality toward mainnet target
+        Takes into account any remaining blockers we couldn't eliminate
+        """
+        try:
+            orders = []
+            order_size = Decimal(str(market_config["order_size"]))
+            margin_ratio = Decimal("0.1")
+            target_price = mainnet_price
+            
+            # Get current orderbook state
+            current_orderbook = await self.get_orderbook_depth(market_id)
+            current_best_bid = 0.0
+            current_best_ask = float('inf')
+            
+            if current_orderbook:
+                buys = current_orderbook.get('buys', [])
+                sells = current_orderbook.get('sells', [])
+                
+                if buys:
+                    current_best_bid = float(buys[0].get('price', '0'))
+                if sells:
+                    current_best_ask = float(sells[0].get('price', '999999'))
+            
+            log(f"🎯 Building toward target: Current BID ${current_best_bid:.4f} ←→ ASK ${current_best_ask:.4f} | Target: ${target_price:.4f}", self.wallet_id)
+            
+            # Calculate how aggressive we should be based on price gap
+            price_gap_percent = abs(mainnet_price - testnet_price) / mainnet_price * 100
+            
+            if price_gap_percent > 20:
+                # Large gap - be more aggressive, move 30% toward target each cycle
+                convergence_factor = 0.3
+                num_orders_per_side = 10
+                log(f"🚀 AGGRESSIVE MODE: Large gap ({price_gap_percent:.1f}%), moving 30% toward target", self.wallet_id)
+            elif price_gap_percent > 5:
+                # Medium gap - moderate approach, move 20% toward target
+                convergence_factor = 0.2
+                num_orders_per_side = 12
+                log(f"🎯 MODERATE MODE: Medium gap ({price_gap_percent:.1f}%), moving 20% toward target", self.wallet_id)
+            else:
+                # Small gap - conservative approach, move 10% toward target
+                convergence_factor = 0.1
+                num_orders_per_side = 8
+                log(f"⚖️ CONSERVATIVE MODE: Small gap ({price_gap_percent:.1f}%), moving 10% toward target", self.wallet_id)
+            
+            # Calculate our target bid/ask (moving toward mainnet price)
+            # Handle the case where current_best_bid is 0 or current_best_ask is inf
+            if current_best_bid == 0.0:
+                # No existing bids - start from a reasonable distance below target
+                our_best_bid = target_price * 0.98  # 2% below target
+            elif current_best_bid < target_price:
+                our_best_bid = current_best_bid + (target_price - current_best_bid) * convergence_factor
+            else:
+                our_best_bid = max(current_best_bid * 0.99, target_price * 0.995)  # Don't go too far below target
+                
+            if current_best_ask == float('inf'):
+                # No existing asks - start from a reasonable distance above target
+                our_best_ask = target_price * 1.02  # 2% above target
+            elif current_best_ask > target_price:
+                our_best_ask = current_best_ask - (current_best_ask - target_price) * convergence_factor
+            else:
+                our_best_ask = min(current_best_ask * 1.01, target_price * 1.005)  # Don't go too far above target
+            
+            # Adjust for any remaining blockers we couldn't eliminate
+            if blocker_info.get('buy_blockers'):
+                # There are still buy blockers, place our sells safely above them
+                highest_blocker = max(blocker_info['buy_blockers'], key=lambda x: x['price'])
+                our_best_ask = max(our_best_ask, float(highest_blocker['price']) * 1.02)  # 2% above blocker
+                log(f"🚧 Adjusting for buy blocker: Placing sells above ${highest_blocker['price']:.4f}", self.wallet_id)
+            
+            if blocker_info.get('sell_blockers'):
+                # There are still sell blockers, place our buys safely below them
+                lowest_blocker = min(blocker_info['sell_blockers'], key=lambda x: x['price'])
+                our_best_bid = min(our_best_bid, float(lowest_blocker['price']) * 0.98)  # 2% below blocker
+                log(f"🚧 Adjusting for sell blocker: Placing buys below ${lowest_blocker['price']:.4f}", self.wallet_id)
+            
+            log(f"📊 Our orderbook plan: BID ${our_best_bid:.4f} ←→ ASK ${our_best_ask:.4f}", self.wallet_id)
+            
+            # Safety check - ensure we have valid prices
+            if not (0 < our_best_bid < float('inf') and 0 < our_best_ask < float('inf')):
+                log(f"❌ Invalid price calculation: BID=${our_best_bid}, ASK=${our_best_ask}", self.wallet_id)
+                return []
+            
+            if our_best_bid >= our_best_ask:
+                log(f"❌ Invalid spread: BID ${our_best_bid:.4f} >= ASK ${our_best_ask:.4f}", self.wallet_id)
+                return []
+            
+            # Log results - track prices as we create orders
+            buy_prices = []
+            sell_prices = []
+            
+            # Create orders spreading outward from our target bid/ask
+            for i in range(num_orders_per_side):
+                # Progressive spread (tighter near center, wider further out)
+                spread_factor = (i / max(1, num_orders_per_side - 1)) ** 1.2  # Exponential curve
+                max_spread = 0.05  # 5% max spread
+                spread = max_spread * spread_factor
+                
+                # Buy orders spreading down from our_best_bid
+                buy_price = Decimal(str(our_best_bid * (1 - spread)))
+                # Round to 3 decimal places for better precision
+                buy_price = buy_price.quantize(Decimal('0.001'))
+                buy_prices.append(float(buy_price))  # Track for summary
+                
+                # Sell orders spreading up from our_best_ask
+                sell_price = Decimal(str(our_best_ask * (1 + spread)))
+                # Round to 3 decimal places for better precision
+                sell_price = sell_price.quantize(Decimal('0.001'))
+                sell_prices.append(float(sell_price))  # Track for summary
+                
+                # Variable order sizes for organic look
+                size_mult = random.uniform(0.7, 1.3)
+                buy_size = (order_size * Decimal(str(size_mult))).quantize(Decimal('0.001'))
+                sell_size = (order_size * Decimal(str(size_mult))).quantize(Decimal('0.001'))
+                
+                # Create buy order
+                buy_margin = (buy_price * buy_size * margin_ratio).quantize(Decimal('0.01'))
+                
+                # Debug logging for buy order
+                log(f"🔍 Creating BUY order: price=${float(buy_price):.3f}, size={float(buy_size):.3f}, margin={float(buy_margin):.2f}", self.wallet_id)
+                
+                try:
+                    buy_order = self.composer.derivative_order(
+                        market_id=market_id,
+                        subaccount_id=self.address.get_subaccount_id(0),
+                        fee_recipient=self.address.to_acc_bech32(),
+                        price=buy_price,
+                        quantity=buy_size,
+                        margin=buy_margin,
+                        order_type="BUY",
+                        cid=None
+                    )
+                    orders.append(buy_order)
+                except Exception as buy_error:
+                    log(f"❌ Error creating BUY order: {buy_error}", self.wallet_id)
+                    continue
+                
+                # Create sell order
+                sell_margin = (sell_price * sell_size * margin_ratio * Decimal("1.5")).quantize(Decimal('0.01'))
+                
+                # Debug logging for sell order
+                log(f"🔍 Creating SELL order: price=${float(sell_price):.3f}, size={float(sell_size):.3f}, margin={float(sell_margin):.2f}", self.wallet_id)
+                
+                try:
+                    sell_order = self.composer.derivative_order(
+                        market_id=market_id,
+                        subaccount_id=self.address.get_subaccount_id(0),
+                        fee_recipient=self.address.to_acc_bech32(),
+                        price=sell_price,
+                        quantity=sell_size,
+                        margin=sell_margin,
+                        order_type="SELL",
+                        cid=None
+                    )
+                    orders.append(sell_order)
+                except Exception as sell_error:
+                    log(f"❌ Error creating SELL order: {sell_error}", self.wallet_id)
+                    continue
+            
+            # Log results using our tracked prices
+            buy_orders = [o for o in orders if "BUY" in str(o)]
+            sell_orders = [o for o in orders if "SELL" in str(o)]
+            
+            if buy_prices and sell_prices:
+                log(f"📖 Smart orderbook: {len(orders)} orders ({len(buy_orders)} BUY: ${min(buy_prices):.3f}-${max(buy_prices):.3f}, {len(sell_orders)} SELL: ${min(sell_prices):.3f}-${max(sell_prices):.3f})", self.wallet_id)
+            else:
+                log(f"📖 Smart orderbook: {len(orders)} orders ({len(buy_orders)} BUY, {len(sell_orders)} SELL)", self.wallet_id)
+            
+            return orders
+            
+        except Exception as e:
+            log(f"❌ Error building smart orderbook: {e}", self.wallet_id)
+            import traceback
+            log(f"❌ Full traceback: {traceback.format_exc()}", self.wallet_id)
+            return []
     
     async def send_batch_orders(self, spot_orders: list, derivative_orders: list, derivative_orders_to_cancel: list = None):
         """
@@ -1093,8 +1533,11 @@ class SingleWalletTrader:
                 gas_price=gas_price
             )
             
+            # Confirm recreated broadcaster is using the K8s endpoint
+            log(f"🚀 Recreated broadcaster using endpoint: {self.network.grpc_exchange_endpoint}", self.wallet_id)
+            
             # Set same timeout as initialization
-            self.broadcaster.timeout_height_offset = 200
+            self.broadcaster.timeout_height_offset = 300
             
             log(f"✅ Broadcaster recreated with sequence: {self.sequence}", self.wallet_id)
             

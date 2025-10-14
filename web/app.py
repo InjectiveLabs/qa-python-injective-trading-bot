@@ -22,7 +22,12 @@ from pydantic import BaseModel
 
 # Add parent directory to path to import from utils
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+# In Docker: /app is root, so add /app to path
+# Locally: add parent dir
+if os.path.exists('/app/utils'):
+    sys.path.insert(0, '/app')
+else:
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from utils.secure_wallet_loader import load_wallets_from_env
 

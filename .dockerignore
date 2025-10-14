@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs (will be mounted as volume)
+logs/*.log
+logs/*.log.*
+
+# Environment files (will be injected)
+.env
+.env.*
+!env.example
+
+# Documentation
+*.md
+!README.md
+docs/
+ARCHITECTURE.md
+PROJECT_STRUCTURE.md
+
+# Test files
+tests/
+test_*.py
+*_test.py
+
+# Scripts (not needed in containers) except bot sources used in Dockerfiles
+scripts/*
+!scripts/bots/
+!scripts/bots/*.py
+
+# macOS
+.DS_Store
+
+# Data files that will be mounted
+data/*.json
+data/*.txt
+
+# Other
+*.bak
+*.tmp
+.coverage
+htmlcov/
+

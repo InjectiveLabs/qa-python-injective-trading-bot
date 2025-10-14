@@ -23,8 +23,19 @@ from pyinjective.core.network import Network
 from pyinjective.core.broadcaster import MsgBroadcasterWithPk
 from pyinjective import PrivateKey, Address
 
-# Add project root to path
-sys.path.append(str(Path(__file__).parent))
+# Add project root to path (works both from repo and inside Docker image)
+_here = Path(__file__).resolve()
+_parents = _here.parents
+_candidates = []
+if len(_parents) >= 3:
+    # When run from repo at scripts/bots/*.py → repo root is parents[2]
+    _candidates.append(_parents[2])
+# When run inside Docker image → file is at /app/derivative_trader.py → root is parent
+_candidates.append(_here.parent)
+for _p in _candidates:
+    if (_p / "utils").exists():
+        sys.path.append(str(_p))
+        break
 
 from utils.secure_wallet_loader import load_wallets_from_env
 
@@ -75,11 +86,20 @@ class SingleWalletTrader:
         # Initialize wallet
         self.private_key = wallet_data['private_key']
         
-        # Initialize network with custom testnet endpoint
+        # Initialize network with custom testnet endpoint and failover state
         self.network = Network.testnet()
-        # Override the indexer endpoint as recommended by dev team
-        self.network.grpc_exchange_endpoint = "k8s.testnet.exchange.grpc.injective.network:443"
+        # Default (fallback) testnet exchange indexer endpoint from SDK
+        self.default_exchange_endpoint = Network.testnet().grpc_exchange_endpoint
+        # Preferred primary indexer endpoint (k8s)
+        self.primary_exchange_endpoint = "k8s.testnet.exchange.grpc.injective.network:443"
+        # Start on primary and point network to current
+        self.current_exchange_endpoint = self.primary_exchange_endpoint
+        self.network.grpc_exchange_endpoint = self.current_exchange_endpoint
         log(f"🔧 Using custom testnet endpoint: {self.network.grpc_exchange_endpoint}", self.wallet_id)
+        # Failover bookkeeping
+        self._on_primary_indexer = True
+        self._last_indexer_switch_ts = 0.0
+        self._primary_retry_interval_sec = 120  # retry primary every 2 minutes while on fallback
         
         # Initialize client and other attributes (will be set in initialize())
         self.async_client = None
@@ -167,6 +187,59 @@ class SingleWalletTrader:
             
         except Exception as e:
             log(f"❌ Failed to initialize {self.wallet_id}: {e}", self.wallet_id)
+            raise
+
+    async def _switch_indexer_endpoint(self, new_endpoint: str):
+        """Switch indexer gRPC endpoint safely, recreating client channels."""
+        if self.network.grpc_exchange_endpoint == new_endpoint:
+            return
+        try:
+            if getattr(self, "indexer_client", None) is not None:
+                try:
+                    await self.indexer_client.close_exchange_channel()
+                    await self.indexer_client.close_explorer_channel()
+                except Exception:
+                    pass
+            self.network.grpc_exchange_endpoint = new_endpoint
+            self.indexer_client = IndexerClient(self.network)
+            self.current_exchange_endpoint = new_endpoint
+            self._last_indexer_switch_ts = time.time()
+            log(f"🔀 Switched indexer endpoint → {new_endpoint}", self.wallet_id)
+        except Exception as e:
+            log(f"❌ Failed switching indexer endpoint to {new_endpoint}: {e}", self.wallet_id)
+            raise
+
+    def _is_indexer_pipeline_error(self, err: Exception) -> bool:
+        """Detect the INTERNAL/$sortArray pipeline error coming from indexer.
+        We match by keywords seen in error messages.
+        """
+        s = str(err).lower()
+        return ("statuscode.internal" in s or "grpc_status:13" in s or "status = statuscode.internal" in s) and (
+            "invalidpipelineoperator" in s or "$sortarray" in s or "failed to get market orderbook" in s
+        )
+
+    async def fetch_derivative_orderbook_v2_failover(self, market_id: str, depth: int) -> dict:
+        """Fetch derivative orderbook v2 with automatic endpoint failover and primary retries."""
+        # While on fallback, occasionally probe the primary and switch back if possible
+        if not self._on_primary_indexer and time.time() - self._last_indexer_switch_ts > self._primary_retry_interval_sec:
+            try:
+                await self._switch_indexer_endpoint(self.primary_exchange_endpoint)
+                self._on_primary_indexer = True
+            except Exception:
+                # Switch back to fallback if probe failed
+                await self._switch_indexer_endpoint(self.default_exchange_endpoint)
+                self._on_primary_indexer = False
+
+        # Try current endpoint first
+        try:
+            return await self.indexer_client.fetch_derivative_orderbook_v2(market_id=market_id, depth=depth)
+        except Exception as e:
+            if self._on_primary_indexer and self._is_indexer_pipeline_error(e):
+                log("⚠️ Indexer pipeline error on primary; failing over to default testnet endpoint...", self.wallet_id)
+                await self._switch_indexer_endpoint(self.default_exchange_endpoint)
+                self._on_primary_indexer = False
+                # Retry once on fallback
+                return await self.indexer_client.fetch_derivative_orderbook_v2(market_id=market_id, depth=depth)
             raise
     
     async def run(self):
@@ -829,12 +902,33 @@ class SingleWalletTrader:
     async def get_orderbook_depth(self, market_id: str) -> dict:
         """Get current orderbook depth for market analysis"""
         try:
-            # Fix: Add required depth parameter
-            orderbook = await self.indexer_client.fetch_derivative_orderbook_v2(market_id=market_id, depth=10)
-            return {
-                'buys': orderbook.get('buys', []),
-                'sells': orderbook.get('sells', [])
-            }
+            # Fix: Add required depth parameter and endpoint failover
+            orderbook = await self.fetch_derivative_orderbook_v2_failover(market_id=market_id, depth=10)
+            # Some indexers nest under 'orderbook'
+            if 'orderbook' in orderbook:
+                raw_buys = orderbook['orderbook'].get('buys', [])
+                raw_sells = orderbook['orderbook'].get('sells', [])
+            else:
+                raw_buys = orderbook.get('buys', [])
+                raw_sells = orderbook.get('sells', [])
+
+            # Derivative orderbook prices are in micro-units (1e6). Scale to human.
+            scale = Decimal('1000000')
+
+            def scale_side(raw):
+                out = []
+                for o in raw:
+                    try:
+                        p = float(Decimal(str(o.get('price', '0'))) / scale)
+                    except Exception:
+                        p = 0.0
+                    out.append({'price': p, 'quantity': o.get('quantity', 0)})
+                return out
+
+            buys = scale_side(raw_buys)
+            sells = scale_side(raw_sells)
+
+            return {'buys': buys, 'sells': sells}
         except Exception as e:
             log(f"⚠️ Could not fetch orderbook depth: {e}", self.wallet_id)
             return {'buys': [], 'sells': []}
@@ -879,7 +973,7 @@ class SingleWalletTrader:
     async def get_available_balance(self, market_id: str) -> Decimal:
         """Get available USDT balance for derivative trading"""
         try:
-            portfolio = await self.indexer_client.fetch_account_portfolio(
+            portfolio = await self.indexer_client.fetch_portfolio(
                 account_address=self.address.to_acc_bech32()
             )
             
@@ -1178,6 +1272,11 @@ class SingleWalletTrader:
             # Safety check - ensure we have valid prices
             if not (0 < our_best_bid < float('inf') and 0 < our_best_ask < float('inf')):
                 log(f"❌ Invalid price calculation: BID=${our_best_bid}, ASK=${our_best_ask}", self.wallet_id)
+                return []
+
+            # Sanity guard: skip if computed prices are wildly out-of-range vs mainnet
+            if (our_best_bid > mainnet_price * 50) or (our_best_ask > mainnet_price * 50):
+                log("🛑 Sanity check failed: computed prices way out of expected range; skipping cycle", self.wallet_id)
                 return []
             
             if our_best_bid >= our_best_ask:
@@ -1758,7 +1857,7 @@ class SingleWalletTrader:
             try:
                 # Use derivative orderbook for price discovery (most reliable)
                 orderbook = await asyncio.wait_for(
-                    self.indexer_client.fetch_derivative_orderbook_v2(market_id=market_id, depth=10),
+                    self.fetch_derivative_orderbook_v2_failover(market_id=market_id, depth=10),
                     timeout=10.0
                 )
                 

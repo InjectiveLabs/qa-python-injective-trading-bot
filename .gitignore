@@ -163,6 +163,11 @@ legacy_wallets_config.json
 private_keys.txt
 wallet_backup.json
 
+# Generated wallet files (DO NOT COMMIT)
+data/wallets_testnet*.json
+data/wallets_mainnet*.json
+data/wallets_*.json
+
 # Market data and cache files
 data/*_comparison_report.txt
 data/*_report.txt

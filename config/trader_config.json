@@ -2,7 +2,14 @@
   "mode": "single_wallet",
   "wallets": {
     "wallet_1": {
-      "markets": ["INJ/USDT", "stINJ/INJ", "TIA/USDT", "HDRO/INJ", "INJ/USDT-PERP", "ATOM/USDT-PERP"],
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
       "trading_params": {
         "spread_percent": 0.5,
         "order_size": 15,
@@ -10,7 +17,14 @@
       }
     },
     "wallet_2": {
-      "markets": ["INJ/USDT", "stINJ/INJ", "TIA/USDT", "HDRO/INJ", "INJ/USDT-PERP", "ATOM/USDT-PERP"],
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
       "trading_params": {
         "spread_percent": 0.5,
         "order_size": 15,
@@ -18,7 +32,764 @@
       }
     },
     "wallet_3": {
-      "markets": ["INJ/USDT", "stINJ/INJ", "TIA/USDT", "HDRO/INJ", "INJ/USDT-PERP", "ATOM/USDT-PERP"],
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_4": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_5": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_6": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_7": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_8": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_9": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_10": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_11": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_12": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_13": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_14": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_15": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_16": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_17": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_18": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_19": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_20": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_21": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_22": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_23": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_24": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_25": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_26": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_27": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_28": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_29": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_30": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_31": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_32": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_33": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_34": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_35": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_36": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_37": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_38": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_39": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_40": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_41": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_42": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_43": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_44": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_45": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_46": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_47": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_48": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_49": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_50": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_51": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_52": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
+      "trading_params": {
+        "spread_percent": 0.5,
+        "order_size": 15,
+        "orders_per_market": 3
+      }
+    },
+    "wallet_53": {
+      "markets": [
+        "INJ/USDT",
+        "stINJ/INJ",
+        "TIA/USDT",
+        "HDRO/INJ",
+        "INJ/USDT-PERP",
+        "ATOM/USDT-PERP"
+      ],
       "trading_params": {
         "spread_percent": 0.5,
         "order_size": 15,

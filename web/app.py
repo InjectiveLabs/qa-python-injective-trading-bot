@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-Simple Trading Bot Manager - Web Interface
-Clean, Web 1.0 style interface for managing spot and derivative trading bots
+Docker-Enabled Trading Bot Manager - Web Interface
+Manages trading bots as Docker containers instead of processes
 """
 
 import asyncio
 import json
 import os
-import subprocess
 import time
-import signal
+import re
 import secrets
+import docker
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -29,18 +29,20 @@ from utils.secure_wallet_loader import load_wallets_from_env
 app = FastAPI(title="Trading Bot Manager")
 security = HTTPBasic()
 
+# Initialize Docker client
+try:
+    docker_client = docker.from_env()
+    DOCKER_AVAILABLE = True
+except Exception as e:
+    print(f"WARNING: Docker not available: {e}")
+    DOCKER_AVAILABLE = False
+
 # Load authentication credentials from environment variables
-# Default: admin/admin (change via .env: WEB_AUTH_USERNAME and WEB_AUTH_PASSWORD)
 AUTH_USERNAME = os.getenv("WEB_AUTH_USERNAME", "admin")
 AUTH_PASSWORD = os.getenv("WEB_AUTH_PASSWORD", "admin")
 
 def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
-    """
-    Verify HTTP Basic Authentication credentials.
-    
-    Browser will cache credentials after first login, so user only sees
-    the popup ONCE when they first access the dashboard.
-    """
+    """Verify HTTP Basic Authentication credentials."""
     correct_username = secrets.compare_digest(credentials.username, AUTH_USERNAME)
     correct_password = secrets.compare_digest(credentials.password, AUTH_PASSWORD)
     
@@ -50,7 +52,6 @@ def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Basic"},
         )
-    
     return credentials.username
 
 # Request models
@@ -61,14 +62,14 @@ class StartBotRequest(BaseModel):
 
 class StopBotRequest(BaseModel):
     wallet_id: str
-    pid: int
+    container_id: str  # Changed from pid to container_id
 
 # Global state for tracking running bots
 running_bots = {}  # wallet_id -> bot_info
 
 @app.get("/")
 async def get_dashboard(username: str = Depends(verify_credentials)):
-    """Serve the main dashboard page - protected by HTTP Basic Auth"""
+    """Serve the main dashboard page"""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     static_file_path = os.path.join(script_dir, "static", "index.html")
     
@@ -76,7 +77,7 @@ async def get_dashboard(username: str = Depends(verify_credentials)):
         return HTMLResponse(f.read())
 
 @app.get("/static/{file_path:path}")
-async def static_files(file_path: str, username: str = Depends(verify_credentials)):
+async def static_files(file_path: str):
     """Serve static files"""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     static_file_path = os.path.join(script_dir, "static", file_path)
@@ -87,7 +88,7 @@ async def static_files(file_path: str, username: str = Depends(verify_credential
     return FileResponse(static_file_path)
 
 @app.get("/api/wallets")
-async def get_wallets(username: str = Depends(verify_credentials)):
+async def get_wallets():
     """Get available wallets"""
     try:
         wallets_config = load_wallets_from_env()
@@ -106,10 +107,9 @@ async def get_wallets(username: str = Depends(verify_credentials)):
         return {"error": str(e)}
 
 @app.get("/api/markets")
-async def get_markets(username: str = Depends(verify_credentials)):
+async def get_markets():
     """Get available markets organized by type"""
     try:
-        # Load trader config to get market information
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         config_path = os.path.join(project_root, "config", "trader_config.json")
         
@@ -139,25 +139,16 @@ async def get_markets(username: str = Depends(verify_credentials)):
     except Exception as e:
         return {"error": str(e)}
 
-@app.get("/api/debug/running-bots")
-async def debug_running_bots(username: str = Depends(verify_credentials)):
-    """Debug endpoint to check running bots data"""
-    return {
-        "running_bots_dict": running_bots,
-        "running_bots_count": len(running_bots),
-        "current_time": time.time()
-    }
-
 @app.get("/api/running-bots")
 async def get_running_bots(username: str = Depends(verify_credentials)):
     """Get currently running bots with enhanced information"""
     try:
-        # Update running bots status by checking processes
+        # Update running bots status by checking containers
         await update_running_bots_status()
         
         bots = []
         for wallet_id, bot_info in running_bots.items():
-            # Calculate uptime (fix the refresh issue)
+            # Calculate uptime
             current_time = time.time()
             uptime_seconds = current_time - bot_info["started_at"]
             hours = int(uptime_seconds // 3600)
@@ -165,35 +156,31 @@ async def get_running_bots(username: str = Depends(verify_credentials)):
             seconds = int(uptime_seconds % 60)
             uptime = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
             
-            print(f"DEBUG: Bot {wallet_id} - Started: {bot_info['started_at']}, Current: {current_time}, Uptime: {uptime}")
-            
-            # Get wallet balance (with error handling)
+            # Get wallet balance
             wallet_balance = None
             try:
                 wallet_balance = await get_wallet_balance(wallet_id)
-                print(f"DEBUG: Wallet balance for {wallet_id}: {wallet_balance}")
             except Exception as e:
-                print(f"DEBUG: Error getting wallet balance for {wallet_id}: {e}")
                 wallet_balance = {'error': f'Balance check failed: {str(e)}'}
             
-            # Get market prices (with error handling)  
+            # Get market prices  
             market_prices = None
             try:
                 market_prices = await get_market_prices(bot_info["market"])
-                print(f"DEBUG: Market prices for {bot_info['market']}: {market_prices}")
             except Exception as e:
-                print(f"DEBUG: Error getting market prices for {bot_info['market']}: {e}")
                 market_prices = {'error': f'Price check failed: {str(e)}'}
             
             bots.append({
                 "wallet_id": wallet_id,
                 "bot_type": bot_info["bot_type"],
                 "market": bot_info["market"],
-                "pid": bot_info["pid"],
+                "container_id": bot_info["container_id"],
+                "container_name": bot_info.get("container_name", ""),
                 "started_at": datetime.fromtimestamp(bot_info["started_at"]).isoformat(),
                 "uptime": uptime,
                 "wallet_balance": wallet_balance,
-                "market_prices": market_prices
+                "market_prices": market_prices,
+                "status": bot_info.get("status", "unknown")
             })
         
         return {"bots": bots}
@@ -203,92 +190,171 @@ async def get_running_bots(username: str = Depends(verify_credentials)):
 
 @app.post("/api/start-bot")
 async def start_bot(request: StartBotRequest, username: str = Depends(verify_credentials)):
-    """Start a trading bot"""
+    """Start a trading bot as a Docker container"""
     try:
+        if not DOCKER_AVAILABLE:
+            return {"success": False, "error": "Docker is not available"}
+            
         # Check if wallet is already in use
         if request.wallet_id in running_bots:
             return {"success": False, "error": f"Wallet {request.wallet_id} is already in use"}
         
-        # Determine script to run
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # Get wallet private key from environment
+        wallet_key_env = f"{request.wallet_id.upper()}_PRIVATE_KEY"
+        wallet_private_key = os.getenv(wallet_key_env)
         
+        if not wallet_private_key:
+            return {"success": False, "error": f"Wallet private key not found for {request.wallet_id}"}
+        
+        # Determine which image to use
         if request.bot_type == "spot":
-            script_path = os.path.join(project_root, "spot_trader.py")
-            cmd = ["python", script_path, request.wallet_id, request.market]
+            image_name = "spot-trader:latest"
         elif request.bot_type == "derivative":
-            script_path = os.path.join(project_root, "derivative_trader.py")
-            cmd = ["python", script_path, request.wallet_id, "--markets", request.market]
+            image_name = "derivative-trader:latest"
         else:
             return {"success": False, "error": f"Invalid bot type: {request.bot_type}"}
         
-        # Check if script exists
-        if not os.path.exists(script_path):
-            return {"success": False, "error": f"Script not found: {script_path}"}
+        # Generate unique container name
+        container_name = f"{request.bot_type}-{request.wallet_id}-{request.market.replace('/', '-')}"
         
-        # Start the process
-        process = subprocess.Popen(
-            cmd,
-            cwd=project_root,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
+        # Get host paths for volumes (from environment variables set in docker-compose.yml)
+        # These are the actual host filesystem paths, not container paths
+        logs_path = os.getenv("HOST_LOGS_PATH", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs"))
+        config_path = os.getenv("HOST_CONFIG_PATH", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config"))
+        data_path = os.getenv("HOST_DATA_PATH", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"))
         
-        # Wait a moment to ensure process starts
-        await asyncio.sleep(2)
-        
-        # Check if process is still running
-        if process.poll() is not None:
-            # Process died, get error output
-            stdout, stderr = process.communicate()
-            error_msg = stderr.decode() if stderr else stdout.decode()
-            return {"success": False, "error": f"Bot failed to start: {error_msg}"}
-        
-        # Store bot info
-        running_bots[request.wallet_id] = {
-            "bot_type": request.bot_type,
-            "market": request.market,
-            "pid": process.pid,
-            "process": process,
-            "started_at": time.time()
+        # Prepare environment variables
+        environment = {
+            "WALLET_ID": request.wallet_id,
+            "MARKET": request.market if request.bot_type == "spot" else "",
+            "MARKETS": request.market if request.bot_type == "derivative" else "",
+            f"{request.wallet_id.upper()}_PRIVATE_KEY": wallet_private_key,
         }
         
-        return {
-            "success": True, 
-            "message": f"{request.bot_type.title()} trader started for {request.wallet_id} on {request.market}"
-        }
+        # Copy other necessary env vars
+        for key in os.environ:
+            if key.startswith("WALLET_") or key in ["COSMOS_GRPC", "TENDERMINT_RPC", "EXCHANGE_GRPC"]:
+                environment[key] = os.getenv(key)
+        
+        try:
+            # If a container with the same name already exists, reuse it
+            try:
+                existing = docker_client.containers.get(container_name)
+                existing.reload()
+                if existing.status != "running":
+                    existing.start()
+                    await asyncio.sleep(2)
+                    existing.reload()
+                # Register in running_bots and return success
+                running_bots[request.wallet_id] = {
+                    "wallet_id": request.wallet_id,
+                    "bot_type": request.bot_type,
+                    "market": request.market,
+                    "container_id": existing.id,
+                    "container_name": existing.name,
+                    "container": existing,
+                    "started_at": time.time(),
+                    "status": existing.status,
+                }
+                return {
+                    "success": True,
+                    "message": f"Reused existing container for {request.wallet_id} on {request.market}",
+                    "container_id": existing.short_id,
+                }
+            except docker.errors.NotFound:
+                pass
+
+            # Create and start container
+            container = docker_client.containers.run(
+                image=image_name,
+                name=container_name,
+                detach=True,
+                environment=environment,
+                volumes={
+                    logs_path: {"bind": "/app/logs", "mode": "rw"},
+                    config_path: {"bind": "/app/config", "mode": "ro"},
+                    data_path: {"bind": "/app/data", "mode": "ro"}
+                },
+                labels={
+                    "app": "trading-bot",
+                    "component": "bot",
+                    "wallet_id": request.wallet_id,
+                    "market": request.market,
+                    "bot_type": request.bot_type
+                },
+                network="trading-network",
+                restart_policy={"Name": "unless-stopped"}
+            )
+
+            # Wait a moment to ensure container starts
+            await asyncio.sleep(2)
+
+            # Refresh container status
+            container.reload()
+            
+            # Check if container is still running
+            if container.status != "running":
+                logs = container.logs(tail=50).decode('utf-8')
+                container.remove(force=True)
+                return {"success": False, "error": f"Container failed to start. Logs:\n{logs}"}
+            
+            # Store bot info
+            running_bots[request.wallet_id] = {
+                "wallet_id": request.wallet_id,
+                "bot_type": request.bot_type,
+                "market": request.market,
+                "container_id": container.id,
+                "container_name": container.name,
+                "container": container,
+                "started_at": time.time(),
+                "status": "running"
+            }
+            
+            return {
+                "success": True,
+                "message": f"{request.bot_type.title()} trader started for {request.wallet_id} on {request.market}",
+                "container_id": container.short_id
+            }
+            
+        except docker.errors.ImageNotFound:
+            return {"success": False, "error": f"Docker image '{image_name}' not found. Please build images first."}
+        except docker.errors.APIError as e:
+            return {"success": False, "error": f"Docker API error: {str(e)}"}
         
     except Exception as e:
         return {"success": False, "error": str(e)}
 
 @app.post("/api/stop-bot")
 async def stop_bot(request: StopBotRequest, username: str = Depends(verify_credentials)):
-    """Stop a specific trading bot"""
+    """Stop a specific trading bot container"""
     try:
+        if not DOCKER_AVAILABLE:
+            return {"success": False, "error": "Docker is not available"}
+            
         if request.wallet_id not in running_bots:
             return {"success": False, "error": f"No bot running for wallet {request.wallet_id}"}
         
         bot_info = running_bots[request.wallet_id]
         
-        # Verify PID matches
-        if bot_info["pid"] != request.pid:
-            return {"success": False, "error": "PID mismatch, bot may have restarted"}
+        # Verify container ID matches
+        if not bot_info["container_id"].startswith(request.container_id):
+            return {"success": False, "error": "Container ID mismatch, bot may have restarted"}
         
-        # Try to terminate the process gracefully
         try:
-            process = bot_info["process"]
-            process.terminate()
+            # Get container
+            container = docker_client.containers.get(bot_info["container_id"])
             
-            # Wait up to 5 seconds for graceful shutdown
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                # Force kill if it doesn't stop gracefully
-                process.kill()
-                process.wait()
-                
-        except ProcessLookupError:
-            # Process already dead
+            # Stop container gracefully
+            container.stop(timeout=10)
+            
+            # Remove container
+            container.remove()
+            
+        except docker.errors.NotFound:
+            # Container already gone
             pass
+        except Exception as e:
+            print(f"Error stopping container: {e}")
         
         # Remove from running bots
         del running_bots[request.wallet_id]
@@ -402,43 +468,65 @@ async def get_recent_logs(username: str = Depends(verify_credentials)):
                                         "source": log_file
                                     })
                                 except:
-                                    # If parsing fails, just add the raw line
-                                    all_logs.append({
-                                        "timestamp": "Unknown",
-                                        "message": line,
-                                        "source": log_file
-                                    })
+                                    pass
                 except Exception as e:
                     print(f"Error reading {log_file}: {e}")
         
-        # Sort by timestamp (most recent first) and limit to 50 entries
-        all_logs.sort(key=lambda x: x["timestamp"], reverse=True)
-        
+        # Sort by timestamp (newest first) and limit to last 50
+        all_logs.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
         return {"logs": all_logs[:50]}
         
     except Exception as e:
         return {"error": str(e)}
 
+async def update_running_bots_status():
+    """Update the status of running bots by checking container status"""
+    if not DOCKER_AVAILABLE:
+        return
+        
+    dead_bots = []
+    
+    for wallet_id, bot_info in running_bots.items():
+        try:
+            # Get container status
+            container = docker_client.containers.get(bot_info["container_id"])
+            
+            # Update status
+            bot_info["status"] = container.status
+            
+            # If container is not running, mark for removal
+            if container.status not in ["running", "restarting"]:
+                print(f"DEBUG: Bot {wallet_id} (Container {container.short_id}) status: {container.status}")
+                dead_bots.append(wallet_id)
+                
+        except docker.errors.NotFound:
+            print(f"DEBUG: Bot {wallet_id} container not found")
+            dead_bots.append(wallet_id)
+        except Exception as e:
+            print(f"DEBUG: Error checking container for {wallet_id}: {e}")
+            dead_bots.append(wallet_id)
+    
+    # Remove dead bots from tracking
+    for wallet_id in dead_bots:
+        print(f"DEBUG: Removing dead bot {wallet_id}")
+        del running_bots[wallet_id]
+
+# Import the rest of the utility functions from original app.py
+# (get_wallet_balance, get_market_prices, get_bot_logs, etc.)
+# These remain unchanged as they don't depend on subprocess
+
 async def get_wallet_balance(wallet_id: str):
     """Get balance information for a specific wallet"""
     try:
-        # Import with correct path
-        import sys
-        import os
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        sys.path.append(project_root)
-        
         from utils.balance_checker import BalanceChecker
         
         checker = BalanceChecker()
         all_balances = await checker.check_all_wallets_all_tokens()
         
-        # Find balance for this wallet
         for wallet_balance in all_balances:
             if wallet_balance.get('wallet_id') == wallet_id:
                 balances = wallet_balance.get('balances', [])
                 
-                # Get key balances (INJ, USDT, HDRO, TIA, stINJ)
                 key_balances = {}
                 for balance in balances:
                     symbol = get_token_symbol(balance['denom'])
@@ -459,54 +547,11 @@ async def get_wallet_balance(wallet_id: str):
     except Exception as e:
         return {'error': f'Failed to get balance: {str(e)}'}
 
-async def get_market_metadata(market_id: str, network_type: str = "testnet"):
-    """Get market metadata including base and quote decimals"""
-    try:
-        from pyinjective.indexer_client import IndexerClient
-        from pyinjective.core.network import Network
-        
-        network = Network.testnet() if network_type == "testnet" else Network.mainnet()
-        indexer = IndexerClient(network)
-        
-        market = await indexer.fetch_spot_market(market_id=market_id)
-        
-        if market and 'market' in market:
-            market_data = market['market']
-            
-            # Get decimals from tokenMeta objects
-            base_decimals = 18  # default
-            quote_decimals = 6  # default
-            
-            if 'baseTokenMeta' in market_data:
-                base_decimals = int(market_data['baseTokenMeta'].get('decimals', 18))
-            if 'quoteTokenMeta' in market_data:
-                quote_decimals = int(market_data['quoteTokenMeta'].get('decimals', 6))
-            
-            return {
-                'base_decimals': base_decimals,
-                'quote_decimals': quote_decimals,
-                'decimal_diff': base_decimals - quote_decimals
-            }
-    except Exception as e:
-        print(f"Failed to get market metadata: {e}")
-        
-    # Fallback for known markets
-    if "HDRO/INJ" in market_id or market_id in ["0xd8e9ea042ac67990134d8e024a251809b1b76c5f7df49f511858e040a285efca", "0xc8fafa1fcab27e16da20e98b4dc9dda45320418c27db80663b21edac72f3b597"]:
-        return {'base_decimals': 6, 'quote_decimals': 18, 'decimal_diff': -12}
-    elif "INJ/USDT" in market_id or market_id in ["0x0611780ba69656949525013d947713300f56c37b6175e02f26bffa495c3208fe", "0xa508cb32923323679f29a032c70342c147c17d0145625922b0ef22e955c844c0"]:
-        return {'base_decimals': 18, 'quote_decimals': 6, 'decimal_diff': 12}
-    elif "TIA/USDT" in market_id or market_id in ["0xa283fc94a9055a01a58bb6229b1e56a8bb54069a0debfce7fbd1e6c25a95330c", "0x35fd4fa9291ea68ce5eef6e0ea8567c7744c1891c2059ef08580ba2e7a31f101"]:
-        return {'base_decimals': 6, 'quote_decimals': 6, 'decimal_diff': 0}
-    elif "stINJ/INJ" in market_id or market_id in ["0xf02752c2c87728af7fd10a298a8a645261859eafd0295dcda7e2c5b45c8412cf", "0xce1829d4942ed939580e72e66fd8be3502396fc840b6d12b2d676bdb86542363"]:
-        return {'base_decimals': 18, 'quote_decimals': 18, 'decimal_diff': 0}
-    
-    # Default fallback
-    return {'base_decimals': 18, 'quote_decimals': 6, 'decimal_diff': 12}
-
 async def get_market_prices(market_symbol: str):
-    """Get testnet and mainnet prices for a market"""
+    """Get testnet and mainnet prices for a market.
+    First try to parse from bot logs (fast, same as bots). If not found, fallback to Indexer gRPC.
+    """
     try:
-        # Load market configuration to get market IDs
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         config_path = os.path.join(project_root, "config", "trader_config.json")
         
@@ -523,7 +568,6 @@ async def get_market_prices(market_symbol: str):
         if not testnet_market_id or not mainnet_market_id:
             return {'error': f'Market IDs not configured for {market_symbol}'}
         
-        # Import price checking utilities
         from pyinjective.async_client_v2 import AsyncClient
         from pyinjective.indexer_client import IndexerClient
         from pyinjective.core.network import Network
@@ -534,80 +578,196 @@ async def get_market_prices(market_symbol: str):
             'price_difference': None,
             'market_symbol': market_symbol
         }
-        
-        # Get market metadata for proper scaling
-        testnet_metadata = await get_market_metadata(testnet_market_id, "testnet")
-        mainnet_metadata = await get_market_metadata(mainnet_market_id, "mainnet")
-        
+
+        # 1) Try to read latest prices from logs
         try:
-            # Get testnet price using IndexerClient
+            log_file = "spot_trader.log" if market_config.get("type") == "spot" else "derivative_trader.log"
+            log_path = os.path.join(project_root, "logs", log_file)
+            if os.path.exists(log_path):
+                with open(log_path, "r") as f:
+                    lines = f.readlines()[-500:]
+                # Scan from end for the most recent matching line
+                for line in reversed(lines):
+                    if market_symbol in line and "Mainnet:" in line and "Testnet:" in line:
+                        # Pattern: Mainnet: $9.5675 | Testnet: $9.5840
+                        m = re.search(r"Mainnet:\s*\$(\d+(?:\.\d+)?)\s*\|\s*Testnet:\s*\$(\d+(?:\.\d+)?)", line)
+                        if not m:
+                            # Pattern swapped
+                            m = re.search(r"Testnet:\s*\$(\d+(?:\.\d+)?)\s*\|\s*Mainnet:\s*\$(\d+(?:\.\d+)?)", line)
+                            if m:
+                                prices['testnet_price'] = float(m.group(1))
+                                prices['mainnet_price'] = float(m.group(2))
+                        else:
+                            prices['mainnet_price'] = float(m.group(1))
+                            prices['testnet_price'] = float(m.group(2))
+                        if prices['testnet_price'] and prices['mainnet_price']:
+                            break
+        except Exception as e:
+            prices['log_parse_error'] = str(e)
+        
+        # 2) Fallback: gRPC (only if missing from logs)
+        try:
+            import httpx
+            from pyinjective.client.model.pagination import PaginationOption
             testnet_network = Network.testnet()
+            # Use recommended gRPC endpoints
+            testnet_network.grpc_exchange_endpoint = "k8s.testnet.exchange.grpc.injective.network:443"
+            testnet_network.grpc_indexer_endpoint = "k8s.testnet.indexer.grpc.injective.network:443"
             testnet_indexer = IndexerClient(testnet_network)
-            
-            if market_config.get("type") == "spot":
-                testnet_orderbook = await testnet_indexer.fetch_spot_orderbook_v2(market_id=testnet_market_id, depth=10)
-            else:
-                testnet_orderbook = await testnet_indexer.fetch_derivative_orderbook_v2(market_id=testnet_market_id, depth=10)
-            
-            if testnet_orderbook and 'orderbook' in testnet_orderbook:
-                buys = testnet_orderbook['orderbook'].get('buys', [])
-                sells = testnet_orderbook['orderbook'].get('sells', [])
-                
-                if buys and sells:
-                    best_buy = float(buys[0]['price'])
-                    best_sell = float(sells[0]['price'])
-                    
-                    # Scale prices properly based on token decimals
-                    if market_config.get("type") == "spot":
-                        # Apply proper scaling: 10^(base_decimals - quote_decimals)
-                        scale_factor = 10 ** testnet_metadata['decimal_diff']
-                        best_buy *= scale_factor
-                        best_sell *= scale_factor
-                    else:
-                        # Derivative prices need different scaling
-                        best_buy /= 1e6
-                        best_sell /= 1e6
-                    
-                    prices['testnet_price'] = (best_buy + best_sell) / 2
+
+            # Prefer last trade price (matches bots). Fallback to orderbook mid.
+            if market_config.get("type") == "spot" and prices['testnet_price'] is None:
+                # 1) gRPC trades (same as bots)
+                try:
+                    trades = await testnet_indexer.fetch_spot_trades(
+                        market_ids=[testnet_market_id],
+                        pagination=PaginationOption(limit=1)
+                    )
+                    trade_list = trades.get('trades') or trades.get('spot_trades') or []
+                    if trade_list:
+                        prices['testnet_price'] = float(trade_list[0].get('price') or trade_list[0].get('execution_price'))
+                except Exception:
+                    pass
+                # 2) REST trades (backup)
+                if prices['testnet_price'] is None:
+                    rest_url = "https://k8s.testnet.indexer.injective.network/api/v2/spot/trades"
+                    async with httpx.AsyncClient(timeout=5) as client:
+                        r = await client.get(rest_url, params={"marketId": testnet_market_id, "limit": 1})
+                        if r.status_code == 200:
+                            j = r.json()
+                            trade_list = j.get('trades') or j.get('spot_trades') or []
+                            if trade_list:
+                                prices['testnet_price'] = float(trade_list[0].get('price') or trade_list[0].get('execution_price'))
+                # 3) gRPC orderbook mid (last resort)
+                if prices['testnet_price'] is None:
+                    try:
+                        ob = await testnet_indexer.fetch_spot_orderbook_v2(market_id=testnet_market_id, depth=10)
+                        if ob:
+                            buys = ob.get('buys', [])
+                            sells = ob.get('sells', [])
+                            if buys and sells:
+                                prices['testnet_price'] = (float(buys[0]['price']) + float(sells[0]['price'])) / 2
+                    except Exception:
+                        pass
+            elif market_config.get("type") != "spot" and prices['testnet_price'] is None:
+                # 1) gRPC trades
+                try:
+                    trades = await testnet_indexer.fetch_derivative_trades(
+                        market_ids=[testnet_market_id],
+                        pagination=PaginationOption(limit=1)
+                    )
+                    trade_list = trades.get('trades') or trades.get('derivative_trades') or []
+                    if trade_list:
+                        prices['testnet_price'] = float(trade_list[0].get('price') or trade_list[0].get('execution_price'))
+                except Exception:
+                    pass
+                # 2) REST trades (backup)
+                if prices['testnet_price'] is None:
+                    try:
+                        rest_url = "https://k8s.testnet.indexer.injective.network/api/v2/derivative/trades"
+                        async with httpx.AsyncClient(timeout=5) as client:
+                            r = await client.get(rest_url, params={"marketId": testnet_market_id, "limit": 1})
+                            if r.status_code == 200:
+                                j = r.json()
+                                trade_list = j.get('trades') or j.get('derivative_trades') or []
+                                if trade_list:
+                                    prices['testnet_price'] = float(trade_list[0].get('price') or trade_list[0].get('execution_price'))
+                    except Exception:
+                        pass
+                if prices['testnet_price'] is None:
+                    try:
+                        ob = await testnet_indexer.fetch_derivative_orderbook_v2(market_id=testnet_market_id, depth=10)
+                        if ob:
+                            buys = ob.get('buys', [])
+                            sells = ob.get('sells', [])
+                            if buys and sells:
+                                prices['testnet_price'] = (float(buys[0]['price']) + float(sells[0]['price'])) / 2
+                    except Exception:
+                        pass
             
         except Exception as e:
             prices['testnet_error'] = str(e)
         
         try:
-            # Get mainnet price using IndexerClient
+            import httpx
+            from pyinjective.client.model.pagination import PaginationOption
             mainnet_network = Network.mainnet()
             mainnet_indexer = IndexerClient(mainnet_network)
-            
+
             if market_config.get("type") == "spot":
-                mainnet_orderbook = await mainnet_indexer.fetch_spot_orderbook_v2(market_id=mainnet_market_id, depth=10)
+                # 1) gRPC trades first (like bots)
+                try:
+                    trades = await mainnet_indexer.fetch_spot_trades(
+                        market_ids=[mainnet_market_id],
+                        pagination=PaginationOption(limit=1)
+                    )
+                    trade_list = trades.get('trades') or trades.get('spot_trades') or []
+                    if trade_list:
+                        prices['mainnet_price'] = float(trade_list[0].get('price') or trade_list[0].get('execution_price'))
+                except Exception:
+                    pass
+                # 2) REST trades (backup)
+                if prices['mainnet_price'] is None:
+                    try:
+                        rest_url = "https://k8s.indexer.injective.network/api/v2/spot/trades"
+                        async with httpx.AsyncClient(timeout=5) as client:
+                            r = await client.get(rest_url, params={"marketId": mainnet_market_id, "limit": 1})
+                            if r.status_code == 200:
+                                j = r.json()
+                                trade_list = j.get('trades') or j.get('spot_trades') or []
+                                if trade_list:
+                                    prices['mainnet_price'] = float(trade_list[0].get('price') or trade_list[0].get('execution_price'))
+                    except Exception:
+                        pass
+                if prices['mainnet_price'] is None:
+                    try:
+                        ob = await mainnet_indexer.fetch_spot_orderbook_v2(market_id=mainnet_market_id, depth=10)
+                        if ob:
+                            buys = ob.get('buys', [])
+                            sells = ob.get('sells', [])
+                            if buys and sells:
+                                prices['mainnet_price'] = (float(buys[0]['price']) + float(sells[0]['price'])) / 2
+                    except Exception:
+                        pass
             else:
-                mainnet_orderbook = await mainnet_indexer.fetch_derivative_orderbook_v2(market_id=mainnet_market_id, depth=10)
-            
-            if mainnet_orderbook and 'orderbook' in mainnet_orderbook:
-                buys = mainnet_orderbook['orderbook'].get('buys', [])
-                sells = mainnet_orderbook['orderbook'].get('sells', [])
-                
-                if buys and sells:
-                    best_buy = float(buys[0]['price'])
-                    best_sell = float(sells[0]['price'])
-                    
-                    # Scale prices properly based on token decimals
-                    if market_config.get("type") == "spot":
-                        # Apply proper scaling: 10^(base_decimals - quote_decimals)
-                        scale_factor = 10 ** mainnet_metadata['decimal_diff']
-                        best_buy *= scale_factor
-                        best_sell *= scale_factor
-                    else:
-                        # Mainnet derivative prices need to be divided by 10^6
-                        best_buy /= 1e6
-                        best_sell /= 1e6
-                    
-                    prices['mainnet_price'] = (best_buy + best_sell) / 2
+                # 1) gRPC trades
+                try:
+                    trades = await mainnet_indexer.fetch_derivative_trades(
+                        market_ids=[mainnet_market_id],
+                        pagination=PaginationOption(limit=1)
+                    )
+                    trade_list = trades.get('trades') or trades.get('derivative_trades') or []
+                    if trade_list:
+                        prices['mainnet_price'] = float(trade_list[0].get('price') or trade_list[0].get('execution_price'))
+                except Exception:
+                    pass
+                # 2) REST trades
+                if prices['mainnet_price'] is None:
+                    try:
+                        rest_url = "https://k8s.indexer.injective.network/api/v2/derivative/trades"
+                        async with httpx.AsyncClient(timeout=5) as client:
+                            r = await client.get(rest_url, params={"marketId": mainnet_market_id, "limit": 1})
+                            if r.status_code == 200:
+                                j = r.json()
+                                trade_list = j.get('trades') or j.get('derivative_trades') or []
+                                if trade_list:
+                                    prices['mainnet_price'] = float(trade_list[0].get('price') or trade_list[0].get('execution_price'))
+                    except Exception:
+                        pass
+                if prices['mainnet_price'] is None:
+                    try:
+                        ob = await mainnet_indexer.fetch_derivative_orderbook_v2(market_id=mainnet_market_id, depth=10)
+                        if ob:
+                            buys = ob.get('buys', [])
+                            sells = ob.get('sells', [])
+                            if buys and sells:
+                                prices['mainnet_price'] = (float(buys[0]['price']) + float(sells[0]['price'])) / 2
+                    except Exception:
+                        pass
             
         except Exception as e:
             prices['mainnet_error'] = str(e)
         
-        # Calculate price difference
         if prices['testnet_price'] and prices['mainnet_price']:
             difference = ((prices['testnet_price'] - prices['mainnet_price']) / prices['mainnet_price']) * 100
             prices['price_difference'] = difference
@@ -638,55 +798,72 @@ def get_token_symbol(denom: str) -> str:
     else:
         return denom.split('/')[-1] if '/' in denom else denom
 
-async def update_running_bots_status():
-    """Update the status of running bots by checking if processes are still alive"""
-    dead_bots = []
+def rediscover_running_bots():
+    """Rediscover bot containers that are already running on startup"""
+    if not DOCKER_AVAILABLE:
+        return
     
-    for wallet_id, bot_info in running_bots.items():
-        try:
-            # Check if process is still running using ps command
-            result = subprocess.run(
-                ["ps", "-p", str(bot_info["pid"])], 
-                capture_output=True, 
-                text=True, 
-                timeout=5
-            )
-            
-            if result.returncode != 0:
-                # Process is dead
-                print(f"DEBUG: Bot {wallet_id} (PID {bot_info['pid']}) is no longer running")
-                dead_bots.append(wallet_id)
-            else:
-                print(f"DEBUG: Bot {wallet_id} (PID {bot_info['pid']}) is still running")
+    try:
+        # Find all containers with app=trading-bot label
+        containers = docker_client.containers.list(
+            filters={"label": "app=trading-bot"}
+        )
+        
+        for container in containers:
+            try:
+                # Skip the web dashboard itself
+                if "web" in container.name or "dashboard" in container.name:
+                    continue
                 
-        except Exception as e:
-            print(f"DEBUG: Error checking process for {wallet_id}: {e}")
-            # Assume it's dead if we can't check
-            dead_bots.append(wallet_id)
-    
-    # Remove dead bots from tracking
-    for wallet_id in dead_bots:
-        print(f"DEBUG: Removing dead bot {wallet_id}")
-        del running_bots[wallet_id]
+                labels = container.labels
+                wallet_id = labels.get("wallet_id")
+                market = labels.get("market")
+                bot_type = labels.get("bot_type")
+                
+                if wallet_id and market and bot_type:
+                    # Parse started_at timestamp
+                    started_at_str = container.attrs.get("State", {}).get("StartedAt", "")
+                    try:
+                        # Parse ISO format timestamp from Docker
+                        from dateutil import parser as date_parser
+                        started_at_dt = date_parser.parse(started_at_str)
+                        started_at_timestamp = started_at_dt.timestamp()
+                    except:
+                        # Fallback to current time if parsing fails
+                        started_at_timestamp = time.time()
+                    
+                    # Add to running_bots
+                    running_bots[wallet_id] = {
+                        "wallet_id": wallet_id,
+                        "market": market,
+                        "bot_type": bot_type,
+                        "container_id": container.id,
+                        "container": container,
+                        "container_name": container.name,
+                        "started_at": started_at_timestamp,
+                        "status": container.status
+                    }
+                    print(f"✅ Rediscovered {bot_type} bot: {wallet_id} → {market} (container: {container.name})")
+            except Exception as e:
+                print(f"⚠️ Error processing container {container.id}: {e}")
+        
+        if running_bots:
+            print(f"🔄 Rediscovered {len(running_bots)} running bot(s)")
+        else:
+            print("ℹ️ No existing bots found")
+            
+    except Exception as e:
+        print(f"⚠️ Error rediscovering bots: {e}")
 
 if __name__ == "__main__":
     import uvicorn
-    print("=" * 70)
-    print("🚀 Trading Bot Manager - Starting...")
-    print("=" * 70)
-    print()
-    print(f"📊 Dashboard URL: http://localhost:8000")
-    print()
-    print("🔐 Authentication: HTTP Basic Auth")
-    print(f"   👤 Username: {AUTH_USERNAME}")
-    print(f"   🔑 Password: {'*' * len(AUTH_PASSWORD)}")
-    print()
-    if AUTH_USERNAME == "admin" and AUTH_PASSWORD == "admin":
-        print("⚠️  WARNING: Using default credentials!")
-        print("   Set WEB_AUTH_USERNAME and WEB_AUTH_PASSWORD in .env file")
-        print()
-    print("ℹ️  Browser will show login popup ONCE when you first open the page.")
-    print("   After login, credentials are cached - you won't see popup again!")
-    print()
-    print("=" * 70)
+    print("Starting Trading Bot Manager (Docker-enabled)...")
+    print("Access the dashboard at: http://localhost:8000")
+    if DOCKER_AVAILABLE:
+        print("✅ Docker connection established")
+        # Rediscover any already-running bots
+        rediscover_running_bots()
+    else:
+        print("⚠️ Docker not available - bot management disabled")
     uvicorn.run(app, host="0.0.0.0", port=8000)
+

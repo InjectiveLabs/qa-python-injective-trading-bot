@@ -38,7 +38,7 @@ class BotManager {
 
         // Wallet and market selection to enable/disable start button
         document.addEventListener('change', (e) => {
-            if (e.target.name === 'wallet' || e.target.name === 'market') {
+            if (e.target.id === 'wallet-select' || e.target.name === 'market') {
                 this.updateStartButtonState();
             }
         });
@@ -91,32 +91,52 @@ class BotManager {
     }
 
     updateWalletSelection() {
-        const container = document.getElementById('wallet-selection');
+        const select = document.getElementById('wallet-select');
         
         if (this.availableWallets.length === 0) {
-            container.innerHTML = '<p class="error">No wallets configured</p>';
+            select.innerHTML = '<option value="">No wallets configured</option>';
+            select.disabled = true;
             return;
         }
 
         // Get list of wallets currently in use
         const walletsInUse = this.runningBots.map(bot => bot.wallet_id);
 
-        container.innerHTML = this.availableWallets.map(wallet => {
-            const inUse = walletsInUse.includes(wallet.id);
-            const statusClass = inUse ? 'status-in-use' : 'status-available';
-            const statusText = inUse ? 'IN USE' : 'Available';
-            const disabled = inUse ? 'disabled' : '';
-            
-            return `
-                <div class="radio-item ${inUse ? 'disabled' : ''}">
-                    <input type="radio" id="wallet-${wallet.id}" name="wallet" value="${wallet.id}" ${disabled}>
-                    <label for="wallet-${wallet.id}">
-                        <span class="status-indicator ${statusClass}"></span>
-                        ${wallet.name} (${statusText})
-                    </label>
-                </div>
-            `;
-        }).join('');
+        // Separate available and in-use wallets
+        const availableWallets = [];
+        const inUseWallets = [];
+
+        this.availableWallets.forEach(wallet => {
+            if (walletsInUse.includes(wallet.id)) {
+                inUseWallets.push(wallet);
+            } else {
+                availableWallets.push(wallet);
+            }
+        });
+
+        // Build dropdown options
+        let optionsHtml = '<option value="">-- Select a wallet --</option>';
+        
+        // Add available wallets first
+        if (availableWallets.length > 0) {
+            optionsHtml += '<optgroup label="Available Wallets">';
+            availableWallets.forEach(wallet => {
+                optionsHtml += `<option value="${wallet.id}">✓ ${wallet.name}</option>`;
+            });
+            optionsHtml += '</optgroup>';
+        }
+        
+        // Add in-use wallets at the bottom (disabled)
+        if (inUseWallets.length > 0) {
+            optionsHtml += '<optgroup label="In Use">';
+            inUseWallets.forEach(wallet => {
+                optionsHtml += `<option value="${wallet.id}" disabled>⊗ ${wallet.name} (In Use)</option>`;
+            });
+            optionsHtml += '</optgroup>';
+        }
+
+        select.innerHTML = optionsHtml;
+        select.disabled = false;
     }
 
     onBotTypeChange() {
@@ -146,7 +166,7 @@ class BotManager {
 
     updateStartButtonState() {
         const botType = document.querySelector('input[name="bot-type"]:checked');
-        const wallet = document.querySelector('input[name="wallet"]:checked');
+        const wallet = document.getElementById('wallet-select').value;
         const market = document.querySelector('input[name="market"]:checked');
         
         const startBtn = document.getElementById('start-bot-btn');
@@ -156,7 +176,7 @@ class BotManager {
     async startBot() {
         const formData = new FormData(document.getElementById('bot-form'));
         const botType = formData.get('bot-type');
-        const walletId = formData.get('wallet');
+        const walletId = document.getElementById('wallet-select').value;
         const market = formData.get('market');
 
         if (!botType || !walletId || !market) {
@@ -195,7 +215,7 @@ class BotManager {
         }
     }
 
-    async stopBot(walletId, pid) {
+    async stopBot(walletId, containerId) {
         if (!confirm(`Stop bot for ${walletId}?`)) {
             return;
         }
@@ -206,7 +226,7 @@ class BotManager {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     wallet_id: walletId,
-                    pid: pid
+                    container_id: containerId
                 })
             });
 
@@ -309,12 +329,12 @@ class BotManager {
                         ${bot.wallet_id}: ${bot.bot_type} Trader (${bot.market})
                     </div>
                     <div class="running-bot-info">
-                        PID: ${bot.pid} | Started: ${new Date(bot.started_at).toLocaleString()} | Uptime: ${bot.uptime}
+                        Container: ${bot.container_id} | Started: ${new Date(bot.started_at).toLocaleString()} | Uptime: ${bot.uptime}
                     </div>
                     ${balanceHtml}
                     ${pricesHtml}
                     <div class="bot-controls">
-                        <button class="danger" onclick="botManager.stopBot('${bot.wallet_id}', ${bot.pid})">
+                        <button class="danger" onclick="botManager.stopBot('${bot.wallet_id}', '${bot.container_id}')">
                             Stop Bot
                         </button>
                         <button onclick="botManager.viewBotLogs('${bot.wallet_id}', '${bot.bot_type}')">
@@ -401,9 +421,12 @@ class BotManager {
             return;
         }
 
-        const logHtml = logs.map(log => 
-            `[${log.timestamp}] ${log.message}`
-        ).join('\n');
+        // Format: timestamp on its own line for readability
+        const logHtml = logs.map(log => {
+            const ts = log.timestamp || '';
+            const msg = log.message || '';
+            return `${ts}\n${msg}`;
+        }).join('\n\n');
         
         container.textContent = logHtml;
         // Auto-scroll to bottom

@@ -23,8 +23,19 @@ from pyinjective.core.network import Network
 from pyinjective.core.broadcaster import MsgBroadcasterWithPk
 from pyinjective import PrivateKey, Address
 
-# Add project root to path
-sys.path.append(str(Path(__file__).parent))
+# Add project root to path (works both from repo and inside Docker image)
+_here = Path(__file__).resolve()
+_parents = _here.parents
+_candidates = []
+if len(_parents) >= 3:
+    # When run from repo at scripts/bots/*.py → repo root is parents[2]
+    _candidates.append(_parents[2])
+# When run inside Docker image → file is at /app/spot_trader.py → root is parent
+_candidates.append(_here.parent)
+for _p in _candidates:
+    if (_p / "utils").exists():
+        sys.path.append(str(_p))
+        break
 
 from utils.secure_wallet_loader import load_wallets_from_env
 
@@ -97,8 +108,11 @@ class EnhancedSpotTrader:
         # Initialize wallet
         self.private_key = wallet_data['private_key']
         
-        # Initialize network 
+        # Initialize network (override indexer endpoint for testnet)
         self.network = Network.testnet()
+        # Align with derivative trader recommended indexer
+        self.network.grpc_exchange_endpoint = "k8s.testnet.exchange.grpc.injective.network:443"
+        log(f"🔧 Using custom testnet endpoint: {self.network.grpc_exchange_endpoint}", self.wallet_id)
         
         # Initialize client and other attributes (will be set in initialize())
         self.async_client = None

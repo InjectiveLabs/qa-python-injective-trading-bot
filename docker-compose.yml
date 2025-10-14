@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # Web Dashboard - Always running for monitoring and control
+  web:
+    build:
+      context: .
+      dockerfile: docker/web/Dockerfile
+    container_name: trading-bot-web
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount Docker socket for container management
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Shared volumes for logs and config
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+      - ./data:/app/data:ro
+    environment:
+      - DASHBOARD_USERNAME=${DASHBOARD_USERNAME:-admin}
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:-changeme}
+      # Host paths for bot container volumes
+      - HOST_PROJECT_ROOT=${PWD}
+      - HOST_LOGS_PATH=${PWD}/logs
+      - HOST_CONFIG_PATH=${PWD}/config
+      - HOST_DATA_PATH=${PWD}/data
+    env_file:
+      - .env
+    networks:
+      - trading-network
+    restart: unless-stopped
+    labels:
+      - "app=trading-bot"
+      - "component=web-dashboard"
+
+  # Note: Bot containers are created dynamically by the web dashboard
+  # They are not pre-defined here to allow flexible wallet+market combinations
+  
+networks:
+  trading-network:
+    driver: bridge
+    name: trading-network
+
+volumes:
+  logs:
+    driver: local
+  config:
+    driver: local
+  data:
+    driver: local
+

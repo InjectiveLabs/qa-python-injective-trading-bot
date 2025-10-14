@@ -136,6 +136,30 @@
         .error { color: #dc3545; font-weight: bold; }
         .success { color: #28a745; font-weight: bold; }
         
+        /* Dropdown styles */
+        .wallet-dropdown {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            background-color: white;
+            cursor: pointer;
+        }
+        .wallet-dropdown:focus {
+            outline: none;
+            border-color: #007cba;
+            box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.1);
+        }
+        .wallet-dropdown option:disabled {
+            color: #999;
+            font-style: italic;
+        }
+        .wallet-dropdown optgroup {
+            font-weight: bold;
+            font-style: normal;
+        }
+        
         /* Modal styles */
         .modal {
             position: fixed;
@@ -157,9 +181,9 @@
         .modal-content {
             background-color: white;
             border-radius: 5px;
-            width: 90%;
-            max-width: 800px;
-            max-height: 80%;
+            width: 95%;
+            max-width: 1100px;
+            max-height: 85%;
             display: flex;
             flex-direction: column;
         }
@@ -196,9 +220,16 @@
             overflow: hidden;
         }
         .modal-body .log-container {
-            height: 400px;
+            height: 70vh;
             margin: 0;
+            white-space: pre-wrap;        /* wrap long lines */
+            word-break: break-word;       /* break long tokens */
+            line-height: 1.4;             /* improve readability */
         }
+
+        /* optional monospace sizing control */
+        #modal-font-controls { display: flex; gap: 8px; align-items: center; }
+        #modal-font-controls button { padding: 4px 8px; }
         .modal-footer {
             padding: 15px 20px;
             border-top: 1px solid #ddd;
@@ -231,10 +262,11 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Select Wallet:</label>
-                    <div class="radio-group" id="wallet-selection">
-                        <!-- Wallets will be populated here -->
-                    </div>
+                    <label for="wallet-select">Select Wallet:</label>
+                    <select id="wallet-select" name="wallet" class="wallet-dropdown">
+                        <option value="">-- Select a wallet --</option>
+                        <!-- Wallets will be populated here by JavaScript -->
+                    </select>
                 </div>
 
                 <div class="form-group">

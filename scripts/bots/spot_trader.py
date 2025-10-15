@@ -108,11 +108,22 @@ class EnhancedSpotTrader:
         # Initialize wallet
         self.private_key = wallet_data['private_key']
         
-        # Initialize network (override indexer endpoint for testnet)
+        # Initialize network with custom testnet endpoint and failover state
         self.network = Network.testnet()
-        # Align with derivative trader recommended indexer
-        self.network.grpc_exchange_endpoint = "k8s.testnet.exchange.grpc.injective.network:443"
+        # Default (fallback) testnet exchange indexer endpoint from SDK
+        self.default_exchange_endpoint = Network.testnet().grpc_exchange_endpoint
+        # Preferred primary indexer endpoint (k8s)
+        self.primary_exchange_endpoint = "k8s.testnet.exchange.grpc.injective.network:443"
+        # Start on primary and point network to current
+        self.current_exchange_endpoint = self.primary_exchange_endpoint
+        self.network.grpc_exchange_endpoint = self.current_exchange_endpoint
         log(f"🔧 Using custom testnet endpoint: {self.network.grpc_exchange_endpoint}", self.wallet_id)
+        # Failover bookkeeping
+        self._on_primary_indexer = True
+        self._last_indexer_switch_ts = 0.0
+        self._primary_retry_interval_sec = 120  # retry primary every 2 minutes while on fallback
+        self._indexer_error_count = 0  # Track consecutive errors
+        self._max_indexer_errors = 3  # Switch after 3 consecutive errors
         
         # Initialize client and other attributes (will be set in initialize())
         self.async_client = None
@@ -211,6 +222,81 @@ class EnhancedSpotTrader:
         except Exception as e:
             log(f"❌ Failed to initialize {self.wallet_id}: {e}", self.wallet_id)
             raise
+    
+    async def _switch_indexer_endpoint(self, new_endpoint: str):
+        """Switch indexer gRPC endpoint safely, recreating client channels."""
+        if self.network.grpc_exchange_endpoint == new_endpoint:
+            return
+        try:
+            if getattr(self, "indexer_client", None) is not None:
+                try:
+                    await self.indexer_client.close_exchange_channel()
+                    await self.indexer_client.close_explorer_channel()
+                except Exception:
+                    pass
+            self.network.grpc_exchange_endpoint = new_endpoint
+            self.indexer_client = IndexerClient(self.network)
+            self.current_exchange_endpoint = new_endpoint
+            self._last_indexer_switch_ts = time.time()
+            log(f"🔀 Switched indexer endpoint → {new_endpoint}", self.wallet_id)
+        except Exception as e:
+            log(f"❌ Failed switching indexer endpoint to {new_endpoint}: {e}", self.wallet_id)
+            raise
+
+    async def fetch_spot_orderbook_v2_failover(self, market_id: str, depth: int) -> dict:
+        """
+        Fetch spot orderbook v2 with automatic endpoint failover and primary retries.
+        This catches ANY error, not just specific ones, and fails over to keep trading.
+        """
+        # While on fallback, occasionally probe the primary and switch back if possible
+        if not self._on_primary_indexer and time.time() - self._last_indexer_switch_ts > self._primary_retry_interval_sec:
+            try:
+                log(f"🔄 Probing primary k8s endpoint to see if it's back online...", self.wallet_id)
+                await self._switch_indexer_endpoint(self.primary_exchange_endpoint)
+                self._on_primary_indexer = True
+                self._indexer_error_count = 0  # Reset error counter
+            except Exception as e:
+                log(f"⚠️ Primary endpoint still unavailable: {e}", self.wallet_id)
+                # Switch back to fallback if probe failed
+                await self._switch_indexer_endpoint(self.default_exchange_endpoint)
+                self._on_primary_indexer = False
+
+        # Try current endpoint first
+        try:
+            result = await self.indexer_client.fetch_spot_orderbook_v2(market_id=market_id, depth=depth)
+            # Success! Reset error counter
+            self._indexer_error_count = 0
+            return result
+        except Exception as e:
+            # Increment error counter
+            self._indexer_error_count += 1
+            
+            # If we're on primary and hitting errors, consider failover
+            if self._on_primary_indexer and self._indexer_error_count >= self._max_indexer_errors:
+                # Log the full error details for the dev team
+                log(f"⚠️ K8S INDEXER FAILURE DETECTED ({self._indexer_error_count} consecutive errors) - Full error details:", self.wallet_id)
+                log(f"❌ Error Type: {type(e).__name__}", self.wallet_id)
+                log(f"❌ Error Message: {str(e)}", self.wallet_id)
+                log(f"❌ Failed Endpoint: {self.primary_exchange_endpoint}", self.wallet_id)
+                log(f"❌ Market ID: {market_id}", self.wallet_id)
+                log(f"🔀 Failing over to default testnet endpoint: {self.default_exchange_endpoint}", self.wallet_id)
+                
+                # Switch to fallback
+                await self._switch_indexer_endpoint(self.default_exchange_endpoint)
+                self._on_primary_indexer = False
+                self._indexer_error_count = 0  # Reset counter after switch
+                
+                # Retry once on fallback
+                try:
+                    return await self.indexer_client.fetch_spot_orderbook_v2(market_id=market_id, depth=depth)
+                except Exception as fallback_error:
+                    log(f"❌ Fallback endpoint also failed: {fallback_error}", self.wallet_id)
+                    raise
+            else:
+                # Either not on primary, or haven't hit error threshold yet
+                if self._on_primary_indexer:
+                    log(f"⚠️ Indexer error {self._indexer_error_count}/{self._max_indexer_errors} on primary: {type(e).__name__}", self.wallet_id)
+                raise
     
     def get_price_scale_factor(self, market_symbol: str) -> Decimal:
         """
@@ -341,7 +427,7 @@ class EnhancedSpotTrader:
                 our_orders_count = len(our_orders_response['orders'])
             
             # Fetch full orderbook
-            orderbook = await self.indexer_client.fetch_spot_orderbook_v2(market_id=market_id, depth=100)
+            orderbook = await self.fetch_spot_orderbook_v2_failover(market_id=market_id, depth=100)
             
             if not orderbook or 'orderbook' not in orderbook:
                 return {
@@ -498,7 +584,7 @@ class EnhancedSpotTrader:
             
             # Fetch FULL orderbook to analyze depth
             orderbook = await asyncio.wait_for(
-                self.indexer_client.fetch_spot_orderbook_v2(market_id=market_id, depth=50),
+                self.fetch_spot_orderbook_v2_failover(market_id=market_id, depth=50),
                 timeout=15.0
             )
             
@@ -864,7 +950,7 @@ class EnhancedSpotTrader:
             order_size = Decimal(str(market_config["order_size"]))
             
             # STEP 1: Analyze current orderbook to understand market structure
-            orderbook = await self.indexer_client.fetch_spot_orderbook_v2(market_id=market_id, depth=10)
+            orderbook = await self.fetch_spot_orderbook_v2_failover(market_id=market_id, depth=10)
             buys = orderbook['orderbook'].get('buys', []) if orderbook and 'orderbook' in orderbook else []
             sells = orderbook['orderbook'].get('sells', []) if orderbook and 'orderbook' in orderbook else []
             
@@ -1483,7 +1569,7 @@ class EnhancedSpotTrader:
                 
                 # FALLBACK: Use orderbook mid-price if no recent trades
                 orderbook = await asyncio.wait_for(
-                    self.indexer_client.fetch_spot_orderbook_v2(market_id=market_id, depth=10),
+                    self.fetch_spot_orderbook_v2_failover(market_id=market_id, depth=10),
                     timeout=15.0  # Increased timeout
                 )
                 

@@ -192,9 +192,6 @@ api_keys.json
 tokens.json
 credentials.json
 
-# Duplicate files (should be in utils/)
-secure_wallet_loader.py
-
 # IDE
 .vscode/
 .idea/

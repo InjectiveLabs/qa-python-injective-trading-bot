@@ -235,7 +235,12 @@ class SingleWalletTrader:
             return await self.indexer_client.fetch_derivative_orderbook_v2(market_id=market_id, depth=depth)
         except Exception as e:
             if self._on_primary_indexer and self._is_indexer_pipeline_error(e):
-                log("⚠️ Indexer pipeline error on primary; failing over to default testnet endpoint...", self.wallet_id)
+                # Log the full error details for the dev team
+                log(f"⚠️ K8S INDEXER FAILURE DETECTED - Full error details:", self.wallet_id)
+                log(f"❌ Error Type: {type(e).__name__}", self.wallet_id)
+                log(f"❌ Error Message: {str(e)}", self.wallet_id)
+                log(f"❌ Failed Endpoint: {self.primary_exchange_endpoint}", self.wallet_id)
+                log(f"🔀 Failing over to default testnet endpoint: {self.default_exchange_endpoint}", self.wallet_id)
                 await self._switch_indexer_endpoint(self.default_exchange_endpoint)
                 self._on_primary_indexer = False
                 # Retry once on fallback

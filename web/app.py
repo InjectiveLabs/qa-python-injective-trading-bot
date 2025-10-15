@@ -72,6 +72,10 @@ class StopBotRequest(BaseModel):
 # Global state for tracking running bots
 running_bots = {}  # wallet_id -> bot_info
 
+# Balance caching with cooldown
+balance_cache = {}  # wallet_id -> {'balances': {...}, 'timestamp': float}
+BALANCE_CACHE_COOLDOWN = 120  # 2 minutes cooldown between balance checks
+
 @app.get("/")
 async def get_dashboard(username: str = Depends(verify_credentials)):
     """Serve the main dashboard page"""
@@ -521,35 +525,80 @@ async def update_running_bots_status():
 # These remain unchanged as they don't depend on subprocess
 
 async def get_wallet_balance(wallet_id: str):
-    """Get balance information for a specific wallet"""
+    """
+    Get balance information for a specific wallet with intelligent caching.
+    Only checks wallets that are running, and caches results for cooldown period.
+    """
     try:
+        current_time = time.time()
+        
+        # Check cache first
+        if wallet_id in balance_cache:
+            cached_data = balance_cache[wallet_id]
+            time_since_check = current_time - cached_data['timestamp']
+            
+            if time_since_check < BALANCE_CACHE_COOLDOWN:
+                # Cache is still valid, return cached data
+                # Log only every 30 seconds to reduce noise
+                if time_since_check % 30 < 1:
+                    print(f"📦 Using cached balance for {wallet_id} (cached {int(time_since_check)}s ago)")
+                return cached_data['balances']
+        
+        # Cache miss or expired - fetch fresh data
         from utils.balance_checker import BalanceChecker
+        from utils.secure_wallet_loader import load_wallets_from_env
         
+        # Load wallet configuration to get private key
+        wallets_config = load_wallets_from_env()
+        target_wallet = None
+        
+        for wallet in wallets_config['wallets']:
+            if wallet['id'] == wallet_id:
+                target_wallet = wallet
+                break
+        
+        if not target_wallet:
+            return {'error': f'Wallet {wallet_id} not found in configuration'}
+        
+        # Create checker and fetch balance for THIS wallet only (not all wallets!)
         checker = BalanceChecker()
-        all_balances = await checker.check_all_wallets_all_tokens()
+        print(f"💰 Fetching fresh balance for {wallet_id}...")
         
-        for wallet_balance in all_balances:
-            if wallet_balance.get('wallet_id') == wallet_id:
-                balances = wallet_balance.get('balances', [])
-                
-                key_balances = {}
-                for balance in balances:
-                    symbol = get_token_symbol(balance['denom'])
-                    if symbol in ['INJ', 'USDT', 'HDRO', 'TIA', 'stINJ']:
-                        key_balances[symbol] = {
-                            'balance': float(balance['balance']),
-                            'denom': balance['denom']
-                        }
-                
-                return {
-                    'wallet_id': wallet_id,
-                    'balances': key_balances,
-                    'total_tokens': len(balances)
+        balance_info = await checker.get_wallet_all_balances(target_wallet['private_key'])
+        
+        if balance_info.get('error'):
+            return {'error': f"Failed to get balance: {balance_info['error']}"}
+        
+        # Process balances
+        balances_list = balance_info.get('balances', [])
+        key_balances = {}
+        
+        for balance in balances_list:
+            symbol = get_token_symbol(balance['denom'])
+            if symbol in ['INJ', 'USDT', 'HDRO', 'TIA', 'stINJ', 'ATOM', 'USDC']:
+                key_balances[symbol] = {
+                    'balance': float(balance['balance']),
+                    'denom': balance['denom']
                 }
         
-        return {'error': f'No balance data found for {wallet_id}'}
+        result = {
+            'wallet_id': wallet_id,
+            'balances': key_balances,
+            'total_tokens': len(balances_list)
+        }
+        
+        # Cache the result
+        balance_cache[wallet_id] = {
+            'balances': result,
+            'timestamp': current_time
+        }
+        
+        print(f"✅ Balance cached for {wallet_id} (cooldown: {BALANCE_CACHE_COOLDOWN}s)")
+        
+        return result
         
     except Exception as e:
+        print(f"❌ Error getting balance for {wallet_id}: {e}")
         return {'error': f'Failed to get balance: {str(e)}'}
 
 async def get_market_prices(market_symbol: str):

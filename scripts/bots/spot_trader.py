@@ -144,6 +144,11 @@ class EnhancedSpotTrader:
         # Market metadata cache for proper price scaling
         self.market_metadata = {}  # market_id -> {base_decimals, quote_decimals, etc}
         
+        # Force chain-based queries (for testing/bypassing indexer issues)
+        self.force_chain_queries = os.getenv('FORCE_CHAIN_QUERIES', 'false').lower() == 'true'
+        if self.force_chain_queries:
+            log(f"⚠️ FORCE_CHAIN_QUERIES enabled - will query chain directly, bypassing indexer", self.wallet_id)
+        
         # Professional sequence management
         self.sequence_lock = asyncio.Lock()
         self.consecutive_sequence_errors = 0
@@ -192,6 +197,10 @@ class EnhancedSpotTrader:
             # Set up wallet identity
             private_key_obj = PrivateKey.from_hex(self.private_key)
             self.address = private_key_obj.to_public_key().to_address()
+            
+            # Log wallet identity for order tracking
+            log(f"🔑 Wallet Address: {self.address.to_acc_bech32()}", self.wallet_id)
+            log(f"🔑 Subaccount ID: {self.address.get_subaccount_id(0)}", self.wallet_id)
             
             # Initialize account and reset sequence to prevent mismatch
             await self.async_client.fetch_account(self.address.to_acc_bech32())
@@ -243,11 +252,45 @@ class EnhancedSpotTrader:
             log(f"❌ Failed switching indexer endpoint to {new_endpoint}: {e}", self.wallet_id)
             raise
 
-    async def fetch_spot_orderbook_v2_failover(self, market_id: str, depth: int) -> dict:
+    async def fetch_spot_orderbook_v2_failover(self, market_id: str, depth: int, force_chain: bool = False) -> dict:
         """
         Fetch spot orderbook v2 with automatic endpoint failover and primary retries.
         This catches ANY error, not just specific ones, and fails over to keep trading.
+        
+        Args:
+            market_id: Market ID to fetch orderbook for
+            depth: Orderbook depth
+            force_chain: If True, skip indexer and query chain directly (for testing)
         """
+        # For testing: Force chain-based query
+        if force_chain:
+            log(f"🔗 FORCE CHAIN MODE: Querying orderbook directly from chain...", self.wallet_id)
+            try:
+                chain_orderbook = await self.async_client.fetch_chain_spot_orderbook(market_id=market_id)
+                if chain_orderbook:
+                    # Chain returns different format - convert to indexer format
+                    buys_raw = chain_orderbook.get('buysPriceLevel', [])
+                    sells_raw = chain_orderbook.get('sellsPriceLevel', [])
+                    
+                    buys = [{'price': level['p'], 'quantity': level['q']} for level in buys_raw]
+                    sells = [{'price': level['p'], 'quantity': level['q']} for level in sells_raw]
+                    
+                    converted_orderbook = {
+                        'orderbook': {
+                            'buys': buys,
+                            'sells': sells
+                        }
+                    }
+                    
+                    log(f"✅ Chain query successful! ({len(buys)} bids, {len(sells)} asks)", self.wallet_id)
+                    return converted_orderbook
+                else:
+                    log(f"⚠️ Chain query returned no data", self.wallet_id)
+                    return None
+            except Exception as e:
+                log(f"❌ Chain query failed: {e}", self.wallet_id)
+                return None
+        
         # While on fallback, occasionally probe the primary and switch back if possible
         if not self._on_primary_indexer and time.time() - self._last_indexer_switch_ts > self._primary_retry_interval_sec:
             try:
@@ -290,13 +333,49 @@ class EnhancedSpotTrader:
                 try:
                     return await self.indexer_client.fetch_spot_orderbook_v2(market_id=market_id, depth=depth)
                 except Exception as fallback_error:
-                    log(f"❌ Fallback endpoint also failed: {fallback_error}", self.wallet_id)
-                    raise
+                    log(f"❌ Fallback indexer endpoint also failed: {fallback_error}", self.wallet_id)
+                    # Fall through to try chain-based query
             else:
                 # Either not on primary, or haven't hit error threshold yet
                 if self._on_primary_indexer:
                     log(f"⚠️ Indexer error {self._indexer_error_count}/{self._max_indexer_errors} on primary: {type(e).__name__}", self.wallet_id)
-                raise
+                # If not at threshold, raise immediately
+                if self._indexer_error_count < self._max_indexer_errors:
+                    raise
+        
+        # LAST RESORT: Chain-based orderbook query (bypasses indexer entirely)
+        try:
+            log(f"🔗 CHAIN FALLBACK: Querying orderbook directly from chain (bypassing indexer)...", self.wallet_id)
+            chain_orderbook = await self.async_client.fetch_chain_spot_orderbook(market_id=market_id)
+            
+            if chain_orderbook:
+                # Chain returns different format: {buysPriceLevel: [{p, q}], sellsPriceLevel: [{p, q}]}
+                # Convert to indexer format: {orderbook: {buys: [{price, quantity}], sells: [{price, quantity}]}}
+                buys_raw = chain_orderbook.get('buysPriceLevel', [])
+                sells_raw = chain_orderbook.get('sellsPriceLevel', [])
+                
+                # Convert format
+                buys = [{'price': level['p'], 'quantity': level['q']} for level in buys_raw]
+                sells = [{'price': level['p'], 'quantity': level['q']} for level in sells_raw]
+                
+                converted_orderbook = {
+                    'orderbook': {
+                        'buys': buys,
+                        'sells': sells
+                    }
+                }
+                
+                log(f"✅ Successfully fetched orderbook from chain! ({len(buys)} bids, {len(sells)} asks)", self.wallet_id)
+                # Reset error counter since we got data
+                self._indexer_error_count = 0
+                return converted_orderbook
+            else:
+                log(f"⚠️ Chain orderbook query returned no data", self.wallet_id)
+                return None
+                
+        except Exception as chain_error:
+            log(f"❌ Chain-based orderbook query also failed: {chain_error}", self.wallet_id)
+            return None
     
     def get_price_scale_factor(self, market_symbol: str) -> Decimal:
         """
@@ -307,6 +386,42 @@ class EnhancedSpotTrader:
             return Decimal('1')
         else:
             return Decimal('1000000000000')  # 10^12
+    
+    def get_quantity_tick_size(self, market_symbol: str) -> Decimal:
+        """
+        Get the minimum quantity tick size for a market.
+        Orders must be in multiples of this value to be accepted by the chain.
+        """
+        # Find market_id for this symbol
+        for config_symbol, config in self.markets_config.items():
+            if config_symbol == market_symbol:
+                market_id = config.get('testnet_market_id' if self.network_name == 'testnet' else 'mainnet_market_id')
+                
+                # Check if we have metadata cached
+                if market_id in self.market_metadata:
+                    min_qty_tick = self.market_metadata[market_id].get('min_quantity_tick_size')
+                    if min_qty_tick:
+                        return Decimal(str(min_qty_tick))
+                
+                break
+        
+        # Default to 0.001 if not found (most markets)
+        return Decimal('0.001')
+    
+    def quantize_order_size(self, size: Decimal, market_symbol: str) -> Decimal:
+        """
+        Quantize order size to match market's min_quantity_tick_size.
+        This ensures orders are accepted by the chain.
+        
+        Args:
+            size: Order size to quantize
+            market_symbol: Market symbol (e.g., "USDC/USDT")
+            
+        Returns:
+            Quantized size that meets market requirements
+        """
+        quantity_tick = self.get_quantity_tick_size(market_symbol)
+        return (size / quantity_tick).quantize(Decimal('1'), rounding='ROUND_DOWN') * quantity_tick
     
     async def run(self):
         """Main trading loop"""
@@ -427,7 +542,7 @@ class EnhancedSpotTrader:
                 our_orders_count = len(our_orders_response['orders'])
             
             # Fetch full orderbook
-            orderbook = await self.fetch_spot_orderbook_v2_failover(market_id=market_id, depth=100)
+            orderbook = await self.fetch_spot_orderbook_v2_failover(market_id=market_id, depth=100, force_chain=self.force_chain_queries)
             
             if not orderbook or 'orderbook' not in orderbook:
                 return {
@@ -524,18 +639,18 @@ class EnhancedSpotTrader:
             is_price_aligned = price_gap_percent <= 2.0
             is_price_moderate = price_gap_percent <= 10.0
             is_price_diverged = price_gap_percent > 10.0
-            is_price_extreme = price_gap_percent > 100.0  # EXTREME gap needs aggressive push
+            is_price_extreme = price_gap_percent > 15.0  # EXTREME gap needs aggressive push (changed from 100%)
             we_have_orders = depth_info['our_orders'] > 0
             we_have_good_depth = depth_info['our_orders'] >= 30
             
             # PHASE 0: EXTREME GAP - Aggressive market moving with directional orders
-            # For gaps >100%, we need to actively push price towards mainnet
+            # For gaps >15%, we need to actively push price towards mainnet by starting from current price
             if is_price_extreme:
                 log(f"🚀 EXTREME GAP ({price_gap_percent:.2f}%) - aggressive price push from ${price:.4f} towards ${mainnet_price:.4f}", self.wallet_id)
                 return await self.aggressive_price_push(market_id, market_symbol, market_config, price, mainnet_price)
             
-            # PHASE 1: LARGE GAP (10-100%) - Build full orderbook centered on mainnet
-            # This "moves" the perceived price by creating a tradeable market at the right level
+            # PHASE 1: MODERATE GAP (10-15%) - Build full orderbook with blended pricing
+            # This creates liquidity at a price between current and target
             elif is_price_diverged:
                 log(f"🏗️ LARGE GAP ({price_gap_percent:.2f}%) - building full book at mainnet ${mainnet_price:.4f} to establish correct price", self.wallet_id)
                 # Create complete 2-sided orderbook centered on mainnet price
@@ -584,7 +699,7 @@ class EnhancedSpotTrader:
             
             # Fetch FULL orderbook to analyze depth
             orderbook = await asyncio.wait_for(
-                self.fetch_spot_orderbook_v2_failover(market_id=market_id, depth=50),
+                self.fetch_spot_orderbook_v2_failover(market_id=market_id, depth=50, force_chain=self.force_chain_queries),
                 timeout=15.0
             )
             
@@ -950,7 +1065,7 @@ class EnhancedSpotTrader:
             order_size = Decimal(str(market_config["order_size"]))
             
             # STEP 1: Analyze current orderbook to understand market structure
-            orderbook = await self.fetch_spot_orderbook_v2_failover(market_id=market_id, depth=10)
+            orderbook = await self.fetch_spot_orderbook_v2_failover(market_id=market_id, depth=10, force_chain=self.force_chain_queries)
             buys = orderbook['orderbook'].get('buys', []) if orderbook and 'orderbook' in orderbook else []
             sells = orderbook['orderbook'].get('sells', []) if orderbook and 'orderbook' in orderbook else []
             
@@ -1108,6 +1223,8 @@ class EnhancedSpotTrader:
         Used when prices are not aligned (> 2% difference)
         """
         orders = []
+        order_details_log = []  # Track order details for logging
+        
         try:
             order_size = Decimal(str(market_config["order_size"]))
             
@@ -1144,7 +1261,9 @@ class EnhancedSpotTrader:
                 
                 actual_spread = spread * spread_jitter
                 actual_size = order_size * Decimal(str(size_mult * size_jitter))
-                actual_size = actual_size.quantize(Decimal('0.001'))
+                
+                # Quantize to market's min_quantity_tick_size (critical for order acceptance!)
+                actual_size = self.quantize_order_size(actual_size, market_symbol)
                 
                 # Calculate prices for this level
                 buy_price = Decimal(str(center_price * (1 - actual_spread)))
@@ -1169,6 +1288,7 @@ class EnhancedSpotTrader:
                     cid=None
                 )
                 orders.append(buy_order)
+                order_details_log.append(('BUY', buy_price, actual_size))
                 
                 # Create sell order (POST-ONLY to sit in orderbook)
                 sell_order = self.composer.spot_order(
@@ -1181,8 +1301,28 @@ class EnhancedSpotTrader:
                     cid=None
                 )
                 orders.append(sell_order)
+                order_details_log.append(('SELL', sell_price, actual_size))
             
             log(f"📖 Created beautiful orderbook with {len(orders)} staircase levels", self.wallet_id)
+            
+            # Log all order details for transparency
+            buy_orders = [o for o in order_details_log if o[0] == 'BUY']
+            sell_orders = [o for o in order_details_log if o[0] == 'SELL']
+            
+            log(f"", self.wallet_id)
+            log(f"📋 ═══════════════════════════════════════════════════", self.wallet_id)
+            if buy_orders:
+                log(f"🟢 BUY ORDERS ({len(buy_orders)}):", self.wallet_id)
+                for idx, (side, price, qty) in enumerate(buy_orders, 1):
+                    log(f"  #{idx:2d} │ Price: ${float(price):>12.8f} │ Size: {float(qty):>12.2f}", self.wallet_id)
+            
+            log(f"", self.wallet_id)
+            if sell_orders:
+                log(f"🔴 SELL ORDERS ({len(sell_orders)}):", self.wallet_id)
+                for idx, (side, price, qty) in enumerate(sell_orders, 1):
+                    log(f"  #{idx:2d} │ Price: ${float(price):>12.8f} │ Size: {float(qty):>12.2f}", self.wallet_id)
+            log(f"📋 ═══════════════════════════════════════════════════", self.wallet_id)
+            log(f"", self.wallet_id)
             
         except Exception as e:
             log(f"❌ Error creating beautiful orderbook for {market_symbol}: {e}", self.wallet_id)
@@ -1569,7 +1709,7 @@ class EnhancedSpotTrader:
                 
                 # FALLBACK: Use orderbook mid-price if no recent trades
                 orderbook = await asyncio.wait_for(
-                    self.fetch_spot_orderbook_v2_failover(market_id=market_id, depth=10),
+                    self.fetch_spot_orderbook_v2_failover(market_id=market_id, depth=10, force_chain=self.force_chain_queries),
                     timeout=15.0  # Increased timeout
                 )
                 

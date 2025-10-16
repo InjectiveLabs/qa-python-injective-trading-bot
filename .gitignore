@@ -162,6 +162,8 @@ legacy_wallets_config.json
 *_wallets_config.json
 private_keys.txt
 wallet_backup.json
+utils/usdt_distributor.py
+utils/USDT_DISTRIBUTOR_README.md
 
 # Generated wallet files (DO NOT COMMIT)
 data/wallets_testnet*.json

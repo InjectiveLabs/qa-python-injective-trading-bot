@@ -637,9 +637,9 @@ class EnhancedSpotTrader:
             
             # STRATEGY SELECTION LOGIC
             is_price_aligned = price_gap_percent <= 2.0
-            is_price_moderate = price_gap_percent <= 10.0
-            is_price_diverged = price_gap_percent > 10.0
-            is_price_extreme = price_gap_percent > 15.0  # EXTREME gap needs aggressive push (changed from 100%)
+            is_price_moderate = price_gap_percent <= 3.0
+            is_price_diverged = price_gap_percent > 4.0
+            is_price_extreme = price_gap_percent > 5.0  # EXTREME gap needs aggressive push (changed from 100%)
             we_have_orders = depth_info['our_orders'] > 0
             we_have_good_depth = depth_info['our_orders'] >= 30
             

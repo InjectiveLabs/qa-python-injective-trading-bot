@@ -64,7 +64,7 @@ def log(message: str, wallet_id: str = None, market_id: str = None):
         print(f"Failed to write to log file: {e}")
 
 class SingleWalletTrader:
-    def __init__(self, wallet_id: str, config_path: str = "config/trader_config.json", selected_markets: List[str] = None):
+    def __init__(self, wallet_id: str, config_path: str = "config/markets_config.json", selected_markets: List[str] = None):
         self.wallet_id = wallet_id
         self.config_path = config_path
         self.config = self.load_config()
@@ -253,13 +253,15 @@ class SingleWalletTrader:
         
         while True:
             try:
-                # Get wallet markets
-                wallet_config = self.config["wallets"][self.wallet_id]
-                all_markets = wallet_config["markets"]
+                # Get all enabled markets from markets_config.json
+                all_markets = [
+                    symbol for symbol, cfg in self.config["markets"].items()
+                    if cfg.get("enabled", False)
+                ]
                 
                 # Filter markets if specific markets were selected
                 if self.selected_markets:
-                    # Validate that selected markets are in the wallet config
+                    # Validate that selected markets are in the enabled markets
                     invalid_markets = [m for m in self.selected_markets if m not in all_markets]
                     if invalid_markets:
                         log(f"❌ Invalid markets for {self.wallet_id}: {invalid_markets}", self.wallet_id)
@@ -380,7 +382,7 @@ class SingleWalletTrader:
         try:
             spread = market_config["spread_percent"] / 100
             order_size = Decimal(str(market_config["order_size"]))
-            orders_per_market = self.config["wallets"][self.wallet_id]["trading_params"]["orders_per_market"]
+            orders_per_market = market_config.get("orders_per_wallet", 2)  # Use market config
             margin_ratio = Decimal("0.1")  # 10% margin requirement
             
             # Get mainnet price to determine direction
@@ -1562,7 +1564,7 @@ class SingleWalletTrader:
             # Calculate order parameters
             spread = market_config["spread_percent"] / 100
             order_size = Decimal(str(market_config["order_size"]))
-            orders_per_market = self.config["wallets"][self.wallet_id]["trading_params"]["orders_per_market"]
+            orders_per_market = market_config.get("orders_per_wallet", 2)  # Use market config
             
             # Create buy and sell derivative orders
             orders = []
@@ -2159,10 +2161,13 @@ async def main():
     
     # Handle list-markets option
     if args.list_markets:
-        wallet_config = trader.config["wallets"][args.wallet_id]
-        all_markets = wallet_config["markets"]
+        # Get all enabled markets from markets_config.json
+        all_markets = [
+            symbol for symbol, cfg in trader.config["markets"].items()
+            if cfg.get("enabled", False)
+        ]
         
-        print(f"\n📊 Available markets for {args.wallet_id}:")
+        print(f"\n📊 Available markets:")
         for market in all_markets:
             market_config = trader.config["markets"][market]
             market_type = market_config.get("type", "spot")
@@ -2175,19 +2180,22 @@ async def main():
         if derivative_markets:
             print(f"\n🎯 Derivative markets: {', '.join(derivative_markets)}")
         else:
-            print(f"\n⚠️  No derivative markets configured for {args.wallet_id}")
+            print(f"\n⚠️  No derivative markets enabled")
         
         return
     
     # Validate selected markets if provided
     if args.markets:
-        wallet_config = trader.config["wallets"][args.wallet_id]
-        all_markets = wallet_config["markets"]
+        # Get all enabled markets from markets_config.json
+        all_markets = [
+            symbol for symbol, cfg in trader.config["markets"].items()
+            if cfg.get("enabled", False)
+        ]
         invalid_markets = [m for m in args.markets if m not in all_markets]
         
         if invalid_markets:
             print(f"❌ Invalid markets: {invalid_markets}")
-            print(f"Available markets for {args.wallet_id}: {all_markets}")
+            print(f"Available enabled markets: {all_markets}")
             sys.exit(1)
         
         # Check if any selected markets are derivatives
@@ -2205,8 +2213,12 @@ async def main():
         if args.markets:
             print(f"🎯 Selected markets: {args.markets}")
         else:
-            wallet_config = trader.config["wallets"][args.wallet_id]
-            print(f"🎯 All configured markets: {wallet_config['markets']}")
+            # Get all enabled markets
+            all_markets = [
+                symbol for symbol, cfg in trader.config["markets"].items()
+                if cfg.get("enabled", False)
+            ]
+            print(f"🎯 All enabled markets: {all_markets}")
         
         await trader.run()
     except KeyboardInterrupt:

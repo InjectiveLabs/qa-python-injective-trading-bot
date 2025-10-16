@@ -4,11 +4,11 @@ This directory contains configuration files for the Injective Trading Bot system
 
 ## 📁 Configuration Files
 
-### `trader_config.json` (Primary Configuration)
+### `markets_config.json` (Primary Configuration)
 
-The main configuration file containing market definitions, trading parameters, and wallet assignments.
+The main configuration file containing market definitions and trading parameters for all markets.
 
-**Location**: `config/trader_config.json`
+**Location**: `config/markets_config.json`
 
 #### Structure
 
@@ -219,11 +219,11 @@ WALLET_3_BALANCE_THRESHOLD=100
    - Store private keys in secure password manager
    - Never share keys via email/chat
 
-### `markets_config.json` (Deprecated)
+### `trader_config.json` (Deprecated)
 
-**Status**: Deprecated, kept for backwards compatibility
+**Status**: Deprecated as of October 2025
 
-Some older scripts may reference this file. New implementations should use `trader_config.json` instead.
+This file contained wallet-specific market assignments for legacy multi-wallet mode. All bots now use `markets_config.json` for market configuration and operate in single-wallet mode.
 
 ## 🔧 Configuration Usage
 
@@ -231,10 +231,10 @@ Some older scripts may reference this file. New implementations should use `trad
 
 #### Derivative Trader
 ```python
-# Loads trader_config.json for markets
+# Loads markets_config.json for all enabled markets
 trader = SingleWalletTrader(
     wallet_id="wallet_1",
-    config_path="config/trader_config.json"
+    config_path="config/markets_config.json"
 )
 
 # Loads .env for private key
@@ -243,10 +243,10 @@ wallets_config = load_wallets_from_env()
 
 #### Spot Trader
 ```python
-# Loads trader_config.json for markets
+# Loads markets_config.json for all enabled markets
 trader = EnhancedSpotTrader(
     wallet_id="wallet1",
-    config_path="config/trader_config.json"
+    markets_config_path="config/markets_config.json"
 )
 
 # Loads .env for private key
@@ -255,29 +255,13 @@ wallets_config = load_wallets_from_env()
 
 ### Configuration Precedence
 
-When values are specified in multiple places, the precedence is:
+Configuration values are loaded from:
 
-1. **Market-specific settings** in `trader_config.json` → `markets` section
-2. **Wallet-specific settings** in `trader_config.json` → `wallets` section
-3. **Global settings** in `trader_config.json` → `global` section
-4. **Default hardcoded values** in bot code
+1. **Market-specific settings** in `markets_config.json` → `markets` section
+2. **Global settings** in `markets_config.json` → `global` section
+3. **Default hardcoded values** in bot code
 
-Example:
-```json
-// Market-specific order_size overrides wallet default
-"markets": {
-  "INJ/USDT": {
-    "order_size": 15  // ← This wins
-  }
-},
-"wallets": {
-  "wallet_1": {
-    "trading_params": {
-      "order_size": 10  // ← This is ignored for INJ/USDT
-    }
-  }
-}
-```
+All bots now automatically discover and trade all **enabled** markets from `markets_config.json`.
 
 ## 📊 Common Configuration Scenarios
 
@@ -408,7 +392,7 @@ For each wallet you plan to use:
 - **Fix**: Add `WALLET_1_ENABLED=true` to `.env`
 
 **Error**: `Market INJ/USDT not found in config`
-- **Cause**: Market not defined in `trader_config.json`
+- **Cause**: Market not defined in `markets_config.json`
 - **Fix**: Add market definition to `markets` section
 
 **Error**: `Invalid market type: derivative for spot trader`
@@ -432,7 +416,7 @@ python -c "from utils.secure_wallet_loader import load_wallets_from_env; import 
 python -c "from utils.secure_wallet_loader import load_wallets_from_env; wallets = load_wallets_from_env(); print(f'Loaded {len(wallets[\"wallets\"])} wallets')"
 
 # Test market configuration
-python -c "import json; config = json.load(open('config/trader_config.json')); print(f'Configured {len(config[\"markets\"])} markets')"
+python -c "import json; config = json.load(open('config/markets_config.json')); print(f'Configured {len(config[\"markets\"])} markets')"
 ```
 
 ## 📝 Configuration Best Practices
@@ -459,7 +443,7 @@ python -c "import json; config = json.load(open('config/trader_config.json')); p
    - Track what works and what doesn't
 
 5. **Version Control Configuration**
-   - Commit `trader_config.json` (no secrets)
+   - Commit `markets_config.json` (no secrets)
    - Never commit `.env` (contains secrets)
    - Use `env.example` as template
 

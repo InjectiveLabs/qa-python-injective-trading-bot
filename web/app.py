@@ -120,7 +120,7 @@ async def get_markets():
     """Get available markets organized by type"""
     try:
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        config_path = os.path.join(project_root, "config", "trader_config.json")
+        config_path = os.path.join(project_root, "config", "markets_config.json")
         
         with open(config_path, "r") as f:
             config = json.load(f)
@@ -607,7 +607,7 @@ async def get_market_prices(market_symbol: str):
     """
     try:
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        config_path = os.path.join(project_root, "config", "trader_config.json")
+        config_path = os.path.join(project_root, "config", "markets_config.json")
         
         with open(config_path, "r") as f:
             config = json.load(f)

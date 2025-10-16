@@ -115,8 +115,28 @@
         "correction_cooldown": 180
       }
     },
+    "ATOM/USDT-PERP": {
+      "testnet_market_id": "0xd97d0da6f6c11710ef06315971250e4e9aed4b7d4cd02059c9477ec8cf243782",
+      "mainnet_market_id": "0xc559df216747fc11540e638646c384ad977617d6d8f0ea5ffdfc18d52e58ab01",
+      "enabled": true,
+      "type": "derivative",
+      "spread_percent": 0.4,
+      "order_size": 12,
+      "min_spread": 0.08,
+      "max_spread": 2.0,
+      "max_wallets": 3,
+      "orders_per_wallet": 2,
+      "price_correction": {
+        "enabled": true,
+        "deviation_threshold": 4.0,
+        "correction_aggressiveness": 0.7,
+        "max_correction_size": 120,
+        "correction_cooldown": 200
+      }
+    },
     "BTC/USDT-PERP": {
-      "market_id": "0x2e94326a421c3f66c15a3b663c7b1ab7fb6a5298b3a57759ecf07f0036793fc9",
+      "testnet_market_id": "0x2e94326a421c3f66c15a3b663c7b1ab7fb6a5298b3a57759ecf07f0036793fc9",
+      "mainnet_market_id": "0x4ca0f92fc28be0c9761326016b5a1a2177dd6375558365116b5bdda9abc229ce",
       "enabled": false,
       "type": "derivative",
       "spread_percent": 0.2,
@@ -134,7 +154,8 @@
       }
     },
     "ETH/USDT-PERP": {
-      "market_id": "0x70bc8d7feab38b23d5fdfb12b9c3726e400c265edbcbf449b6c80c31d63d3a02",
+      "testnet_market_id": "0x70bc8d7feab38b23d5fdfb12b9c3726e400c265edbcbf449b6c80c31d63d3a02",
+      "mainnet_market_id": "0x34c08735b9c8369d3ccf6b2a3e1ff6b9c9d0b87c1b3f7e3b1f71c3d7c8c3b4a5",
       "enabled": false,
       "type": "derivative",
       "spread_percent": 0.25,

@@ -155,7 +155,7 @@
     },
     "ETH/USDT-PERP": {
       "testnet_market_id": "0x70bc8d7feab38b23d5fdfb12b9c3726e400c265edbcbf449b6c80c31d63d3a02",
-      "mainnet_market_id": "0x34c08735b9c8369d3ccf6b2a3e1ff6b9c9d0b87c1b3f7e3b1f71c3d7c8c3b4a5",
+      "mainnet_market_id": "0x54d4505adef6a5cef26bc403a33d595620ded4e15b9e2bc3dd489b714813366a",
       "enabled": true,
       "type": "derivative",
       "spread_percent": 0.25,
